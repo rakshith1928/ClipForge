@@ -1,0 +1,8 @@
+﻿{
+    "python.analysis.indexing":  true,
+    "python.analysis.useLibraryCodeForTypes":  true,
+    "python.analysis.extraPaths":  [
+                                       "c:/Users/DELL/podclip/backend/venv/Lib/site-packages"
+                                   ],
+    "python.defaultInterpreterPath":  "c:/Users/DELL/podclip/backend/venv/Scripts/python.exe"
+}
