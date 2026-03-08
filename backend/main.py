@@ -12,6 +12,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register routes
+app.include_router(upload_router)   # ← add this
+
 @app.get("/health")
 def health_check():
     """Quick check that the server is running"""
