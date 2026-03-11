@@ -14,6 +14,7 @@ app.add_middleware(
 
 # Register routes
 app.include_router(upload_router)   # ← add this
+app.include_router(analyze_router) 
 
 @app.get("/health")
 def health_check():
