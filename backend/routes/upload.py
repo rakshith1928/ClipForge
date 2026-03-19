@@ -98,17 +98,39 @@ async def transcribe_audio(audio_path: Path) -> dict:
     response = client.listen.prerecorded.v("1").transcribe_file(
         {"buffer": buffer_data, "mimetype": "audio/mp3"},
         options,
+        timeout=300
     )
 
-    # Pull out the data we care about
-    result = response["results"]["channels"][0]["alternatives"][0]
+    # v3 returns objects, not dicts — use dot notation
+    alternative = response.results.channels[0].alternatives[0]
+
+    words = [
+        {
+            "word": w.word,
+            "start": w.start,
+            "end": w.end,
+            "speaker": getattr(w, "speaker", 0),
+        }
+        for w in alternative.words
+    ]
+
+    paragraphs = []
+    if hasattr(alternative, "paragraphs") and alternative.paragraphs:
+        paragraphs = [
+            {
+                "sentences": [
+                    {"text": s.text, "start": s.start, "end": s.end}
+                    for s in p.sentences
+                ]
+            }
+            for p in alternative.paragraphs.paragraphs
+        ]
 
     return {
-        "transcript": result["transcript"],       # full text
-        "words": result["words"],                 # [{word, start, end, speaker}...]
-        "paragraphs": result.get("paragraphs", {}).get("paragraphs", []),
+        "transcript": alternative.transcript,
+        "words": words,
+        "paragraphs": paragraphs,
     }
-
 
 # ── Main route: POST /upload ─────────────────────────────────────────────────
 

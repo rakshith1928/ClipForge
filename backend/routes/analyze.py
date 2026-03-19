@@ -17,7 +17,7 @@ load_dotenv()
 router = APIRouter(prefix="/analyze", tags=["analyze"])
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-client = genai.GenerativeModel("gemini-2.0-flash-exp")
+client = genai.GenerativeModel("gemini-2.0-flash")
 
 
 # ── Request shape the frontend sends us ─────────────────────────────────────
@@ -79,12 +79,12 @@ async def analyze_transcript(body: AnalyzeRequest):
     if not body.transcript:
         raise HTTPException(status_code=400, detail="Transcript is empty")
 
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not set")
+    if not os.getenv("GEMINI_API_KEY"):
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY not set")
 
     # ── Build the prompt ─────────────────────────────────────────────────────
-    # We give Claude very specific instructions and a strict JSON format.
-    # The more specific you are, the better Claude's output.
+    # We give Gemini very specific instructions and a strict JSON format.
+    # The more specific you are, the better Gemini's output.
 
     prompt = f"""You are an expert podcast content strategist. Your job is to analyze podcast transcripts and find the most shareable, viral moments.
 
@@ -142,7 +142,7 @@ Rules:
         analysis = json.loads(raw_response.strip())
 
         # ── Attach timestamps to each quote ─────────────────────────────────
-        # We take the first_words Claude gave us and look them up in the word list
+        # We take the first_words Gemini gave us and look them up in the word list
 
         for quote in analysis.get("quotes", []):
             first_words = quote.get("first_words", quote["text"][:30])
@@ -171,6 +171,6 @@ Rules:
         }
 
     except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"Claude returned invalid JSON: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Gemini returned invalid JSON: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
