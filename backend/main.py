@@ -1,12 +1,17 @@
 # backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from routes.upload import router as upload_router
 from routes.analyze import router as analyze_router
+from routes.generate import router as generate_router
+from pathlib import Path
+
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="PodClip API", version="0.1.0")
 
-# Allow your Next.js frontend (localhost:3000) to talk to this backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -14,11 +19,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routes
-app.include_router(upload_router)   # ← add this
-app.include_router(analyze_router) 
+# Serve uploaded/generated files as static files
+# This means http://localhost:8000/files/filename.mp4 will work
+app.mount("/files", StaticFiles(directory="uploads"), name="files")
+
+app.include_router(upload_router)
+app.include_router(analyze_router)
+app.include_router(generate_router)
 
 @app.get("/health")
 def health_check():
-    """Quick check that the server is running"""
     return {"status": "ok", "message": "PodClip API is running"}
