@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-fixed": "#37001d",
+              "on-primary-fixed-variant": "#370086",
+              "outline": "#767577",
+              "on-primary-fixed": "#000000",
+              "tertiary-fixed": "#ff8cbc",
+              "on-surface-variant": "#adaaad",
+              "surface-bright": "#2c2c2f",
+              "surface-container-highest": "#262528",
+              "surface-container-low": "#131315",
+              "error-dim": "#d73357",
+              "primary-fixed-dim": "#a27cff",
+              "surface-container": "#19191c",
+              "on-tertiary-container": "#2f0018",
+              "secondary-fixed-dim": "#bdbeff",
+              "surface-variant": "#262528",
+              "surface-container-high": "#1f1f22",
+              "inverse-primary": "#6e3bd7",
+              "on-secondary-fixed": "#160bae",
+              "error": "#ff6e84",
+              "on-error": "#490013",
+              "background": "#0e0e10",
+              "secondary": "#9093ff",
+              "on-secondary": "#080079",
+              "secondary-fixed": "#cdcdff",
+              "error-container": "#a70138",
+              "tertiary-container": "#fa53a4",
+              "on-secondary-fixed-variant": "#3a3ac8",
+              "tertiary": "#ff6daf",
+              "surface-container-lowest": "#000000",
+              "primary": "#ba9eff",
+              "outline-variant": "#48474a",
+              "on-background": "#f9f5f8",
+              "tertiary-dim": "#ff67ad",
+              "surface-dim": "#0e0e10",
+              "secondary-dim": "#6063ee",
+              "surface-tint": "#ba9eff",
+              "surface": "#0e0e10",
+              "tertiary-fixed-dim": "#ff73b1",
+              "on-tertiary": "#4b002a",
+              "on-primary-container": "#2b006e",
+              "on-primary": "#39008c",
+              "on-tertiary-fixed-variant": "#740044",
+              "secondary-container": "#2f2ebe",
+              "on-error-container": "#ffb2b9",
+              "on-secondary-container": "#ccccff",
+              "inverse-surface": "#fcf8fb",
+              "on-surface": "#f9f5f8",
+              "primary-dim": "#8455ef",
+              "inverse-on-surface": "#565457",
+              "primary-container": "#ae8dff",
+              "primary-fixed": "#ae8dff"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0e0e10;
+            color: #f9f5f8;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(38, 37, 40, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(72, 71, 74, 0.15);
+        }
+        .premium-gradient-bg {
+            background: linear-gradient(135deg, #ba9eff 0%, #8455ef 100%);
+        }
+        .text-gradient {
+            background: linear-gradient(to bottom right, #ffffff 30%, #ba9eff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glow-shadow {
+            box-shadow: 0 0 40px -10px rgba(186, 158, 255, 0.3);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="antialiased">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-transparent backdrop-blur-lg">
+<div class="flex justify-between items-center max-w-7xl mx-auto px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg premium-gradient-bg flex items-center justify-center font-bold text-white shadow-lg shadow-primary/20">P</div>
+<span class="text-xl font-bold tracking-tighter text-white font-headline">PodClip</span>
+</div>
+<div class="hidden md:flex items-center gap-8 font-plus-jakarta text-sm font-medium tracking-tight">
+<a class="text-slate-400 hover:text-violet-300 transition-colors duration-300" href="#">Features</a>
+<a class="text-slate-400 hover:text-violet-300 transition-colors duration-300" href="#">Pricing</a>
+<a class="text-slate-400 hover:text-violet-300 transition-colors duration-300" href="#">Wall of Love</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-plus-jakarta text-sm font-medium tracking-tight text-slate-400 hover:text-white transition-all">Log In</button>
+<button class="premium-gradient-bg text-on-primary-fixed px-6 py-2.5 rounded-full text-sm font-bold shadow-2xl shadow-violet-900/20 active:scale-95 transition-all">Sign Up</button>
+</div>
+</div>
+</nav>
+<main class="relative">
+<!-- Background Orbs -->
+<div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -z-10"></div>
+<div class="absolute top-40 right-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-[100px] -z-10"></div>
+<!-- Hero Section -->
+<section class="pt-40 pb-20 px-6 text-center max-w-5xl mx-auto">
+<div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-outline-variant/20 bg-surface-container-low text-primary text-xs font-bold tracking-widest uppercase mb-8">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                ✨ AI-Powered Podcast Repurposing
+            </div>
+<h1 class="text-5xl md:text-7xl font-headline font-extrabold tracking-tighter text-gradient mb-8 leading-[1.1]">
+                Turn your podcast into <br class="hidden md:block"/> 30 days of viral content
+            </h1>
+<p class="text-lg md:text-xl text-on-surface-variant max-w-2xl mx-auto mb-12 font-body font-light leading-relaxed">
+                Upload an episode. Get viral clips, quote cards, and a scheduled content calendar—automatically. Powered by atmospheric intelligence.
+            </p>
+<div class="flex flex-col md:flex-row items-center justify-center gap-4 mb-20">
+<button class="premium-gradient-bg text-white px-10 py-5 rounded-full text-lg font-bold glow-shadow flex items-center gap-3 transition-transform hover:scale-105 active:scale-95">
+                    Start for Free <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<button class="glass-card text-on-surface px-10 py-5 rounded-full text-lg font-medium border border-outline-variant/30 hover:bg-surface-container transition-all">
+                    View Demo
+                </button>
+</div>
+<!-- Hero Visual Area -->
+<div class="relative w-full max-w-5xl mx-auto mt-20">
+<div class="aspect-video glass-card rounded-lg overflow-hidden relative border border-outline-variant/20 shadow-2xl">
+<img class="w-full h-full object-cover opacity-60" data-alt="Futuristic software interface dashboard with waveform visualizations, clip grids, and purple glowing neon accents on a dark workspace background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgNEs9NXjqY700thcEKEm8vjHFAGhrpbCamV0CB4zklVxOynsQqci1FN7LGmrYYJCKwGhZC__VVk_xwp0T5082-lNxgRx4sCA9Fk7zAettIokMpstgRLxg3AwDNWQUP3D0as-As5Z_QuZIFbEivb5dklnxzwlEzSHkFeV05gs-XYDiVHA6C7h4XvN-T__3tMRkMVyzSCGVyuPnOmPqrCnlJcZq6XuRMiBC6DGA7_PXbQM6KzsC3RF9Jw_YVyJPYH_0YS3nqC0l74gw"/>
+<!-- Floating Cards -->
+<div class="absolute top-10 left-10 glass-card p-6 rounded-2xl border border-primary/20 shadow-2xl hidden lg:block max-w-[240px] text-left">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full premium-gradient-bg flex items-center justify-center"><span class="material-symbols-outlined text-white">calendar_month</span></div>
+<div class="text-xs">
+<p class="text-on-surface font-bold">Content Ready</p>
+<p class="text-on-surface-variant">32 Clips Generated</p>
+</div>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary w-4/5"></div>
+</div>
+</div>
+<div class="absolute bottom-10 right-10 glass-card p-6 rounded-2xl border border-secondary/20 shadow-2xl hidden lg:block max-w-[280px] text-left">
+<div class="flex items-center gap-2 mb-3">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<p class="text-[10px] uppercase tracking-widest text-secondary font-bold">Viral Prediction</p>
+</div>
+<p class="text-2xl font-bold font-headline text-white mb-2">98.4%</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">High likelihood of trending on TikTok and Instagram Reels based on current hook trends.</p>
+</div>
+<!-- Center Play Button -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-24 h-24 rounded-full premium-gradient-bg flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-[0_0_50px_rgba(186,158,255,0.5)]">
+<span class="material-symbols-outlined text-white text-5xl translate-x-1" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Social Proof -->
+<section class="py-20 border-t border-outline-variant/10">
+<div class="max-w-7xl mx-auto px-6 text-center">
+<p class="text-on-surface-variant font-label text-xs tracking-widest uppercase mb-12">Trusted by 10,000+ hours of transcribed audio from top creators</p>
+<div class="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-40 grayscale contrast-125">
+<div class="text-2xl font-black text-white font-headline">CREATOR.CO</div>
+<div class="text-2xl font-black text-white font-headline">SOUNDBASE</div>
+<div class="text-2xl font-black text-white font-headline">PODFLOW</div>
+<div class="text-2xl font-black text-white font-headline">TALKSMITH</div>
+<div class="text-2xl font-black text-white font-headline">VOX_IA</div>
+</div>
+</div>
+</section>
+<!-- How It Works -->
+<section class="py-32 px-6">
+<div class="max-w-7xl mx-auto">
+<div class="mb-20">
+<span class="text-primary font-label text-xs tracking-[0.2em] uppercase font-bold">The Workflow</span>
+<h2 class="text-4xl md:text-5xl font-headline font-bold text-white mt-4">Three steps to dominance</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+<!-- Connector line (Desktop) -->
+<div class="hidden md:block absolute top-12 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent -z-10"></div>
+<!-- Step 1 -->
+<div class="group">
+<div class="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mb-8 border border-outline-variant/20 group-hover:border-primary/50 transition-colors">
+<span class="material-symbols-outlined text-primary text-3xl">upload_file</span>
+</div>
+<h3 class="text-xl font-headline font-bold text-white mb-4">01. Upload Episode</h3>
+<p class="text-on-surface-variant leading-relaxed font-body">Drop your MP3, WAV, or YouTube link. Our engine parses the full context instantly.</p>
+</div>
+<!-- Step 2 -->
+<div class="group">
+<div class="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mb-8 border border-outline-variant/20 group-hover:border-secondary/50 transition-colors">
+<span class="material-symbols-outlined text-secondary text-3xl">psychology</span>
+</div>
+<h3 class="text-xl font-headline font-bold text-white mb-4">02. AI Extract Hooks</h3>
+<p class="text-on-surface-variant leading-relaxed font-body">Atmospheric Intelligence identifies high-retention moments and viral-ready soundbites.</p>
+</div>
+<!-- Step 3 -->
+<div class="group">
+<div class="w-16 h-16 rounded-2xl glass-card flex items-center justify-center mb-8 border border-outline-variant/20 group-hover:border-tertiary/50 transition-colors">
+<span class="material-symbols-outlined text-tertiary text-3xl">schedule_send</span>
+</div>
+<h3 class="text-xl font-headline font-bold text-white mb-4">03. Auto-Post</h3>
+<p class="text-on-surface-variant leading-relaxed font-body">Review, edit with our AI canvas, and schedule to TikTok, Reels, and YouTube Shorts.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Grid Features -->
+<section class="py-32 px-6 bg-surface-container-low/30">
+<div class="max-w-7xl mx-auto">
+<div class="mb-16">
+<h2 class="text-4xl font-headline font-bold text-white">Engineered for Virality</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-6 gap-6 h-auto md:h-[600px]">
+<!-- Viral Prediction Card -->
+<div class="md:col-span-3 glass-card rounded-lg p-8 flex flex-col justify-between group overflow-hidden relative">
+<div class="absolute top-0 right-0 p-4 opacity-10 scale-150 -rotate-12 transition-transform group-hover:scale-175">
+<span class="material-symbols-outlined text-[120px] text-primary">trending_up</span>
+</div>
+<div>
+<span class="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest mb-6">Prediction Engine</span>
+<h3 class="text-3xl font-headline font-bold text-white mb-4">Performance Score</h3>
+<p class="text-on-surface-variant max-w-sm">Every clip is ranked by its likelihood to go viral based on real-time platform data.</p>
+</div>
+<div class="mt-8 flex items-baseline gap-2">
+<span class="text-6xl font-black font-headline text-white">98</span>
+<span class="text-2xl text-primary font-bold">/ 100</span>
+</div>
+</div>
+<!-- Speaker Intelligence -->
+<div class="md:col-span-3 glass-card rounded-lg p-8 flex flex-col justify-center text-center items-center group">
+<div class="w-20 h-20 rounded-full premium-gradient-bg mb-6 flex items-center justify-center shadow-2xl">
+<span class="material-symbols-outlined text-white text-3xl" style="font-variation-settings: 'FILL' 1;">face</span>
+</div>
+<h3 class="text-2xl font-headline font-bold text-white mb-4">Speaker Intelligence</h3>
+<p class="text-on-surface-variant max-w-xs">Automatic face tracking and active speaker detection for perfect vertical cropping.</p>
+</div>
+<!-- Hook Generator -->
+<div class="md:col-span-2 glass-card rounded-lg p-8 flex flex-col justify-between border-t-2 border-tertiary/20">
+<h3 class="text-xl font-headline font-bold text-white mb-4">Hook Generator</h3>
+<div class="space-y-3">
+<div class="h-8 bg-surface-container-high rounded flex items-center px-3 text-[10px] text-on-surface-variant italic">"Wait, did he just say that?"</div>
+<div class="h-8 bg-surface-container-high rounded flex items-center px-3 text-[10px] text-on-surface-variant italic">"The dark secret of Podcasting..."</div>
+<div class="h-8 bg-primary/20 border border-primary/30 rounded flex items-center px-3 text-[10px] text-primary font-bold">"Why 99% of podcasts fail."</div>
+</div>
+</div>
+<!-- Content Calendar -->
+<div class="md:col-span-4 glass-card rounded-lg p-8 flex items-center gap-12 overflow-hidden border-t-2 border-secondary/20">
+<div class="flex-1">
+<h3 class="text-2xl font-headline font-bold text-white mb-4">Content Calendar</h3>
+<p class="text-on-surface-variant">Queue up a month's worth of content in 5 minutes. We handle the distribution.</p>
+</div>
+<div class="hidden lg:grid grid-cols-4 gap-2 opacity-50">
+<div class="w-12 h-16 bg-surface-container rounded-md"></div>
+<div class="w-12 h-16 bg-secondary rounded-md"></div>
+<div class="w-12 h-16 bg-surface-container rounded-md"></div>
+<div class="w-12 h-16 bg-surface-container rounded-md"></div>
+<div class="w-12 h-16 bg-surface-container rounded-md"></div>
+<div class="w-12 h-16 bg-primary rounded-md"></div>
+<div class="w-12 h-16 bg-surface-container rounded-md"></div>
+<div class="w-12 h-16 bg-surface-container rounded-md"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Testimonials -->
+<section class="py-32 px-6">
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-20">
+<h2 class="text-4xl font-headline font-bold text-white">Loved by the top 1%</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Testimonial 1 -->
+<div class="glass-card p-8 rounded-2xl flex flex-col justify-between">
+<div>
+<div class="flex gap-1 text-primary mb-6">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="text-on-surface font-body italic leading-relaxed">"PodClip reduced our editing time by 90%. We used to spend days finding clips, now it's done before my coffee is cold."</p>
+</div>
+<div class="flex items-center gap-4 mt-8">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Headshot of a modern creative professional man with short beard in a minimalist grey studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvH3-pBpecf-FY3yoYaugV3h3x9H8YQkajTi16UVL3RjUtxVu_wbX_BZyq4FW18G-gVogHww4JreFlX6dh4TAdvDRnRPkVJrSMqoHoFHr-jY96qKNUF1JhYpBQ7EmFFn_zm7bPc1BTbNWUNFZuvu5wie3Ni047apXtby2ADfGYikcOjk8Wn2uHwfHXv57969HvZAzjN7qeaaCyZxShwZIWVMmzj4dE_derQL85RdN_PSUWcw-U4aP99j61-wjrU6KVwIvHworkJoDx"/>
+<div>
+<p class="text-white font-bold text-sm">Alex Rivera</p>
+<p class="text-on-surface-variant text-xs">@alex_digital</p>
+</div>
+</div>
+</div>
+<!-- Testimonial 2 -->
+<div class="glass-card p-8 rounded-2xl flex flex-col justify-between">
+<div>
+<div class="flex gap-1 text-primary mb-6">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="text-on-surface font-body italic leading-relaxed">"The virality prediction is scarily accurate. Our TikTok following exploded from 0 to 50k in less than two months."</p>
+</div>
+<div class="flex items-center gap-4 mt-8">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Close-up portrait of a young smiling professional woman with long dark hair in a brightly lit professional setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALVBv9OJlriEsqqI_nge6F9GHiMLyvdQSlABxYLg-DF8WuHiB7njmX_9v3i5dL18-tk_xvNMELTenzAoH7-FYNOJ0pJFU7Og89stnrxnVFd97dsmAfUR7P0oGf_HyfsGrM1sBYSUlKNEqajRSYMCm87kWWn4Zj5I2l95EQAeoWTPhTaHCpKfbOlTd35gqg3UmwZaGyNcXWOuMHeLOZnvalR67LRGu3Gxa1ea4mZf5DJ8tFHjqOjMNm9RkVTwL0DVJ_AQ1-RTVOqc3D"/>
+<div>
+<p class="text-white font-bold text-sm">Sarah Jenkins</p>
+<p class="text-on-surface-variant text-xs">@jenkins_pod</p>
+</div>
+</div>
+</div>
+<!-- Testimonial 3 -->
+<div class="glass-card p-8 rounded-2xl flex flex-col justify-between">
+<div>
+<div class="flex gap-1 text-primary mb-6">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="text-on-surface font-body italic leading-relaxed">"The sheer quality of the AI captions and cropping is unmatched. It feels like I have a full-time editor in a box."</p>
+</div>
+<div class="flex items-center gap-4 mt-8">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Portrait of a mature man with glasses and a friendly expression in a high-end office environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCubugZ8rdbvmhr4gz-Pdxww6Hm3vjloU0q3aDkoFDSGOzGOscvxdR3slHCRMUB7lQ8rF4DJ0RaUPM4Q7YLrq3foIWQx4LVVxu7bLYc-hcj2nmB-3OB1UIr3MMswyoWd3rb0OrkqoFMCbrmME6GJUwXVlu0J-9DN031EDQ6SMu9FcZINTOdDw6ygmFwdV-ZK36Bsa9wbC569G9jMgrq3FNd1S-rIGGUOlk4-QVvqUr_BGUtoWLpdyCXIuhj_vEX6sDVv8VRofufyeQw"/>
+<div>
+<p class="text-white font-bold text-sm">Marcus Thorne</p>
+<p class="text-on-surface-variant text-xs">@m_thorne_vox</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Final CTA Section -->
+<section class="py-32 px-6">
+<div class="max-w-7xl mx-auto">
+<div class="relative overflow-hidden rounded-[2.5rem] bg-surface-container-low border border-outline-variant/20 p-12 md:p-24 text-center">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 -z-10"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px] -z-20"></div>
+<h2 class="text-4xl md:text-6xl font-headline font-bold text-white mb-8">Ready to scale your content?</h2>
+<p class="text-lg text-on-surface-variant max-w-xl mx-auto mb-12">Join 2,500+ podcasters who are growing their audience while they sleep.</p>
+<button class="premium-gradient-bg text-white px-12 py-5 rounded-full text-xl font-bold shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                        Upload Your First Episode
+                    </button>
+<p class="mt-8 text-xs text-on-surface-variant/60 font-label tracking-widest uppercase">No credit card required • 2 free episodes included</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full border-t border-white/5 py-12 bg-[#0e0e10]">
+<div class="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12">
+<div class="col-span-1 md:col-span-1">
+<div class="flex items-center gap-2 mb-6">
+<div class="w-6 h-6 rounded-md premium-gradient-bg flex items-center justify-center font-bold text-[10px] text-white">P</div>
+<span class="text-lg font-black text-white">PodClip</span>
+</div>
+<p class="text-slate-500 text-sm leading-relaxed mb-6">Atmospheric Intelligence for the modern creator economy.</p>
+<p class="font-inter text-[10px] tracking-widest uppercase text-slate-500">© 2024 PodClip. Atmospheric Intelligence.</p>
+</div>
+<div>
+<h4 class="font-inter text-xs tracking-widest uppercase text-white font-bold mb-6">Product</h4>
+<ul class="space-y-4 text-xs font-inter tracking-widest uppercase">
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Features</a></li>
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Pricing</a></li>
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">API</a></li>
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Integrations</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-inter text-xs tracking-widest uppercase text-white font-bold mb-6">Resources</h4>
+<ul class="space-y-4 text-xs font-inter tracking-widest uppercase">
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Blog</a></li>
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Guides</a></li>
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Wall of Love</a></li>
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Support</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-inter text-xs tracking-widest uppercase text-white font-bold mb-6">Legal</h4>
+<ul class="space-y-4 text-xs font-inter tracking-widest uppercase">
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Privacy</a></li>
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Terms</a></li>
+<li><a class="text-slate-500 hover:text-white transition-all" href="#">Security</a></li>
+</ul>
+</div>
+</div>
+</footer>
+</body></html>

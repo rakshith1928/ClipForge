@@ -33,5 +33,12 @@ Thumbs.db
 
 # ── IDE ──
 .vscode/
+.vscode/settings.json
 .idea/
 *.swp
+
+# ── Stitch and Evaluation ──
+evaluation.md*
+implementation_plan.md*
+stitch_prompt.md*
+
