@@ -64,7 +64,7 @@ export default function AnalyzePage() {
     runAnalysis(episode);
   }, []);
 
-  const runAnalysis = async (episode: any) => {
+  const runAnalysis = async (episode: Record<string, unknown>) => {
     try {
       const response = await fetch("http://localhost:8000/analyze/", {
         method: "POST",
@@ -91,8 +91,8 @@ export default function AnalyzePage() {
       // Save analysis results for Phase 4
       sessionStorage.setItem("analysis", JSON.stringify(data));
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Analysis failed");
       setStatus("error");
     }
   };
@@ -193,7 +193,7 @@ export default function AnalyzePage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <p className="text-white font-medium leading-relaxed mb-3">"{q.text}"</p>
+                    <p className="text-white font-medium leading-relaxed mb-3">&quot;{q.text}&quot;</p>
                     <div className="flex items-center gap-3 text-xs text-zinc-500">
                       <span>{q.speaker}</span>
                       <span>·</span>

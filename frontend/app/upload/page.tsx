@@ -65,9 +65,9 @@ export default function UploadPage() {
       // (Phase 3 will replace this with a proper database)
       sessionStorage.setItem("episode", JSON.stringify(data));
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus("error");
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
     }
   };
 
@@ -108,7 +108,7 @@ export default function UploadPage() {
                 </div>
               ) : (
                 <div>
-                  <p className="font-semibold mb-1">Drag & drop your podcast here</p>
+                  <p className="font-semibold mb-1">Drag &amp; drop your podcast here</p>
                   <p className="text-zinc-500 text-sm">or click to browse</p>
                 </div>
               )}
@@ -175,7 +175,7 @@ export default function UploadPage() {
               onClick={() => router.push("/analyze")}
               className="w-full bg-violet-600 hover:bg-violet-500 text-white font-semibold py-4 rounded-xl transition-colors"
             >
-              Find Viral Clips & Quotes →
+              Find Viral Clips &amp; Quotes →
             </button>
           </div>
         )}
