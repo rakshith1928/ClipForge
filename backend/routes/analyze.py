@@ -9,16 +9,14 @@ import os
 import json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import google.generativeai as genai
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 
 router = APIRouter(prefix="/analyze", tags=["analyze"])
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-client = genai.GenerativeModel("gemini-2.0-flash")
-
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # ── Request shape the frontend sends us ─────────────────────────────────────
 
@@ -79,8 +77,8 @@ async def analyze_transcript(body: AnalyzeRequest):
     if not body.transcript:
         raise HTTPException(status_code=400, detail="Transcript is empty")
 
-    if not os.getenv("GEMINI_API_KEY"):
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY not set")
+    if not os.getenv("GROQ_API_KEY"):
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY not set")
 
     # ── Build the prompt ─────────────────────────────────────────────────────
     # We give Gemini very specific instructions and a strict JSON format.
@@ -127,11 +125,13 @@ Rules:
 - Do NOT include boring or generic statements."""
 
     try:
-        # Call Gemini  API
-        message = client.generate_content(prompt)
+        message = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=4000,
+        )
+        raw_response = message.choices[0].message.content
 
-        # Parse Gemini's response as JSON
-        raw_response = message.text
         
         # Strip markdown code blocks if Gemini accidentally adds them
         if raw_response.startswith("```"):
