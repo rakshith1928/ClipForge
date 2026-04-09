@@ -1,10 +1,8 @@
-// frontend/app/upload/page.tsx
-// This page handles file upload with drag-and-drop UI
-// For now it's just the UI shell — no real upload logic yet (that's Phase 2)
-
 "use client";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Navbar } from "../components/Navbar";
+import { Footer } from "../components/Footer";
 
 // The 4 states our UI can be in
 type Status = "idle" | "uploading" | "transcribing" | "done" | "error";
@@ -26,175 +24,234 @@ export default function UploadPage() {
     if (dropped) setFile(dropped);
   }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!file) return;
 
     setStatus("uploading");
-    setProgress(20);
+    setProgress(0);
     setError("");
 
-    try {
-      // Build a FormData object — this is how you send files to a backend
-      const formData = new FormData();
-      formData.append("file", file);
-
-      setProgress(40);
-      setStatus("transcribing");
-
-      // Send to our FastAPI backend
-      const response = await fetch("http://localhost:8000/upload/", {
-        method: "POST",
-        body: formData,
-        // Note: do NOT set Content-Type header manually with FormData
-        // The browser sets it automatically with the correct boundary
-      });
-
-      setProgress(80);
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || "Upload failed");
-      }
-
-      const data = await response.json();
-      setProgress(100);
-      setStatus("done");
-      setTranscript(data.transcript);
-
-      // Store in sessionStorage so the next page can use it
-      // (Phase 3 will replace this with a proper database)
-      sessionStorage.setItem("episode", JSON.stringify(data));
-
-    } catch (err: unknown) {
-      setStatus("error");
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+    // Build a FormData object
+    const formData = new FormData();
+    formData.append("file", file);
+    if (title.trim() !== "") {
+      formData.append("title", title); // Fix: Append the title!
     }
+
+    // Use XMLHttpRequest for actual progress tracking
+    const xhr = new XMLHttpRequest();
+    
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        setProgress(percentComplete);
+        if (percentComplete === 100) {
+          setStatus("transcribing");
+        }
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          setProgress(100);
+          setStatus("done");
+          setTranscript(data.transcript);
+
+          // Store in sessionStorage so the next page can use it
+          sessionStorage.setItem("episode", JSON.stringify(data));
+        } catch (e) {
+          setStatus("error");
+          setError("Failed to parse response");
+        }
+      } else {
+        setStatus("error");
+        let errMessage = "Upload failed";
+        try {
+          const errorRes = JSON.parse(xhr.responseText);
+          errMessage = errorRes.detail || errMessage;
+        } catch(e) {}
+        setError(errMessage);
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      setStatus("error");
+      setError("Network error occurred during upload.");
+    });
+
+    xhr.open("POST", "http://localhost:8000/upload/");
+    // Note: Do not set Content-Type to multipart/form-data manually, XHR does it with the boundary boundary automatically
+    xhr.send(formData);
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────
-
   return (
-    <main className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center px-8">
-      <div className="w-full max-w-xl">
+    <main className="min-h-screen bg-background text-on-surface flex flex-col relative w-full overflow-x-hidden">
+      <Navbar />
 
-        {/* Header */}
-        <h1 className="text-3xl font-bold mb-2 tracking-tight">Upload Episode</h1>
-        <p className="text-zinc-400 mb-8">Supports MP4, MOV, MP3, WAV</p>
-
-        {/* Show different UI depending on status */}
-        {status === "idle" && (
-          <>
-            {/* Drop zone */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => document.getElementById("fileInput")?.click()}
-              className={`border-2 border-dashed rounded-2xl p-16 text-center transition-colors cursor-pointer
-                ${isDragging ? "border-violet-500 bg-violet-500/10" : "border-zinc-700 hover:border-zinc-500"}`}
-            >
-              <input
-                id="fileInput"
-                type="file"
-                accept="video/*,audio/*"
-                className="hidden"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-              />
-              <div className="text-4xl mb-4">🎬</div>
-              {file ? (
-                <div>
-                  <p className="font-semibold text-violet-400">{file.name}</p>
-                  <p className="text-zinc-500 text-sm mt-1">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="font-semibold mb-1">Drag &amp; drop your podcast here</p>
-                  <p className="text-zinc-500 text-sm">or click to browse</p>
+      <div className="flex-1 flex flex-col items-center justify-center px-8 py-32 relative z-10 w-full max-w-7xl mx-auto">
+        <div className="w-full max-w-2xl">
+  
+          {/* Header */}
+          <div className="mb-12 text-center md:text-left">
+            <h1 className="text-4xl md:text-5xl font-headline font-extrabold tracking-tighter text-gradient mb-4">
+              Upload Episode
+            </h1>
+            <div className="flex items-center justify-center md:justify-start gap-2 text-on-surface-variant font-body">
+              <span className="material-symbols-outlined text-[20px]">audio_file</span>
+              <p>Supports MP4, MOV, MP3, WAV</p>
+            </div>
+          </div>
+  
+          {/* Show different UI depending on status */}
+          {status === "idle" && (
+            <div className="flex flex-col gap-6">
+              {/* Drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById("fileInput")?.click()}
+                className={`glass-card rounded-2xl p-16 text-center transition-all cursor-pointer border
+                  ${isDragging ? "border-primary glow-shadow" : "border-outline-variant/15 hover:border-primary/50"}`}
+              >
+                <input
+                  id="fileInput"
+                  type="file"
+                  accept="video/*,audio/*"
+                  className="hidden"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                />
+                
+                {file ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <span className="material-symbols-outlined text-primary text-5xl">task</span>
+                    <div>
+                      <p className="font-semibold text-primary">{file.name}</p>
+                      <p className="text-on-surface-variant text-sm mt-1">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3">
+                    <span className="material-symbols-outlined text-on-surface-variant text-5xl mb-2">cloud_upload</span>
+                    <h3 className="text-xl font-headline font-bold text-white mb-1">Drag & drop your podcast here</h3>
+                    <p className="text-on-surface-variant text-sm font-body">or click to browse from your computer</p>
+                  </div>
+                )}
+              </div>
+  
+              {file && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      placeholder="Episode title (optional)"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full bg-surface-container border border-outline-variant/15 rounded-xl px-4 py-4 text-white placeholder-on-surface-variant/50 focus:outline-none focus:border-primary focus:shadow-[0_0_15px_rgba(186,158,255,0.2)] transition-all font-body"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSubmit}
+                    className="w-full premium-gradient-bg text-on-primary-fixed font-bold py-4 rounded-full glow-shadow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  >
+                    Start Processing <span className="material-symbols-outlined">arrow_forward</span>
+                  </button>
                 </div>
               )}
             </div>
-
-            {file && (
-              <div className="mt-6 space-y-4">
-                <input
-                  type="text"
-                  placeholder="Episode title (optional)"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-violet-500"
-                />
-                <button
-                  onClick={handleSubmit}
-                  className="w-full bg-violet-600 hover:bg-violet-500 text-white font-semibold py-4 rounded-xl transition-colors"
-                >
-                  Start Processing →
-                </button>
+          )}
+  
+          {/* Processing state (Uploading/Transcribing) */}
+          {(status === "uploading" || status === "transcribing") && (
+            <div className="glass-card rounded-2xl p-12 text-center animate-in fade-in zoom-in-95 duration-500">
+              <div className="w-20 h-20 rounded-full premium-gradient-bg mx-auto flex items-center justify-center shadow-[0_0_50px_rgba(186,158,255,0.3)] mb-8">
+                <span className={`material-symbols-outlined text-white text-4xl ${status === "uploading" ? "animate-bounce" : "animate-spin"}`}>
+                  {status === "uploading" ? "cloud_upload" : "sync"}
+                </span>
               </div>
-            )}
-          </>
-        )}
-
-        {/* Processing state */}
-        {(status === "uploading" || status === "transcribing") && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center">
-            <div className="text-4xl mb-4 animate-bounce">
-              {status === "uploading" ? "⬆️" : "🎙️"}
+              
+              <h3 className="text-2xl font-headline font-bold text-white mb-2">
+                {status === "uploading" ? "Uploading to Cloud..." : "Transcribing with AI..."}
+              </h3>
+              
+              <p className="text-on-surface-variant font-body text-sm mb-10">
+                {status === "uploading" ? "Encrypting and syncing your file securely." : "Atmospheric Intelligence is analyzing the audio. This takes 1-3 minutes."}
+              </p>
+              
+              {/* Sleek Progress bar */}
+              <div className="w-full max-w-sm mx-auto">
+                <div className="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-3 text-xs font-label tracking-widest uppercase text-primary">
+                  <span>{status === "uploading" ? "Transferring" : "Processing"}</span>
+                  <span>{progress}%</span>
+                </div>
+              </div>
             </div>
-            <p className="font-semibold mb-1">
-              {status === "uploading" ? "Uploading file..." : "Transcribing with AI..."}
-            </p>
-            <p className="text-zinc-500 text-sm mb-6">
-              {status === "transcribing" ? "This can take 1-3 minutes for long episodes" : ""}
-            </p>
-            {/* Progress bar */}
-            <div className="w-full bg-zinc-800 rounded-full h-2">
-              <div
-                className="bg-violet-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
+          )}
+  
+          {/* Done state */}
+          {status === "done" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="glass-card !bg-[#0e2a14]/60 !border-[#176a21]/30 rounded-2xl p-8 flex items-center gap-6">
+                <div className="w-16 h-16 rounded-full bg-[#176a21]/30 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[#90e28a] text-3xl">check_circle</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-headline font-bold text-[#90e28a] mb-1">Upload Complete!</h3>
+                  <p className="text-on-surface-variant font-body">Atmospheric Intelligence has extracted {transcript.split(" ").length} words.</p>
+                </div>
+              </div>
+  
+              {/* Preview of transcript */}
+              <div className="glass-card rounded-2xl p-8 overflow-hidden relative">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-surface-container-high"></div>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="material-symbols-outlined text-tertiary text-[18px]">terminal</span>
+                  <p className="text-tertiary font-label text-xs tracking-widest uppercase">Transcription Output</p>
+                </div>
+                <p className="text-sm text-on-surface-variant font-body leading-relaxed line-clamp-6 pl-4 border-l border-outline-variant/20 relative z-10">
+                  {transcript}
+                </p>
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-surface-container/90 to-transparent pointer-events-none z-20"></div>
+              </div>
+  
+              <button
+                onClick={() => router.push("/analyze")}
+                className="w-full premium-gradient-bg text-on-primary-fixed font-bold py-5 rounded-full glow-shadow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-lg mt-4"
+              >
+                Find Viral Clips & Quotes <span className="material-symbols-outlined">auto_awesome</span>
+              </button>
             </div>
-            <p className="text-zinc-500 text-xs mt-2">{progress}%</p>
-          </div>
-        )}
-
-        {/* Done state */}
-        {status === "done" && (
-          <div className="space-y-4">
-            <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-6">
-              <p className="text-green-400 font-semibold mb-1">✅ Transcription complete!</p>
-              <p className="text-zinc-400 text-sm">{transcript.split(" ").length} words transcribed</p>
+          )}
+  
+          {/* Error state */}
+          {status === "error" && (
+            <div className="glass-card !bg-[rgba(215,51,87,0.1)] !border-[#d73357]/30 rounded-2xl p-8 text-center animate-in fade-in zoom-in-95 duration-500">
+              <div className="w-16 h-16 rounded-full bg-[#d73357]/20 flex items-center justify-center mx-auto mb-6">
+                <span className="material-symbols-outlined text-[#ffb2b9] text-3xl">error</span>
+              </div>
+              <h3 className="text-xl font-headline font-bold text-[#ffb2b9] mb-2">Upload Interrupted</h3>
+              <p className="text-[#ffb2b9]/80 font-body text-sm mb-8">{error}</p>
+              
+              <button
+                onClick={() => { setStatus("idle"); setError(""); setProgress(0); }}
+                className="px-8 py-3 rounded-full border border-[#ffb2b9]/30 text-[#ffb2b9] font-bold hover:bg-[#d73357]/10 transition-colors"
+              >
+                Try Again
+              </button>
             </div>
-
-            {/* Preview of transcript */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-              <p className="text-zinc-400 text-xs uppercase tracking-widest mb-3">Transcript Preview</p>
-              <p className="text-sm text-zinc-300 leading-relaxed line-clamp-6">{transcript}</p>
-            </div>
-
-            <button
-              onClick={() => router.push("/analyze")}
-              className="w-full bg-violet-600 hover:bg-violet-500 text-white font-semibold py-4 rounded-xl transition-colors"
-            >
-              Find Viral Clips &amp; Quotes →
-            </button>
-          </div>
-        )}
-
-        {/* Error state */}
-        {status === "error" && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6">
-            <p className="text-red-400 font-semibold mb-1">❌ Something went wrong</p>
-            <p className="text-zinc-400 text-sm">{error}</p>
-            <button
-              onClick={() => { setStatus("idle"); setError(""); }}
-              className="mt-4 text-violet-400 text-sm hover:underline"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-
+          )}
+  
+        </div>
       </div>
+      <Footer />
     </main>
   );
 }

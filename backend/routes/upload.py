@@ -6,7 +6,7 @@ import os
 import uuid
 import subprocess
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 import aiofiles
 from deepgram import DeepgramClient, PrerecordedOptions
@@ -135,7 +135,7 @@ async def transcribe_audio(audio_path: Path) -> dict:
 # ── Main route: POST /upload ─────────────────────────────────────────────────
 
 @router.post("/")
-async def upload_episode(file: UploadFile = File(...)):
+async def upload_episode(file: UploadFile = File(...), title: str = Form(None)):
     """
     Full pipeline:
     1. Save uploaded file
@@ -166,6 +166,7 @@ async def upload_episode(file: UploadFile = File(...)):
         print("Done! Returning transcript.")
         return JSONResponse({
             "success": True,
+            "title": title,
             "file_id": saved_path.stem,   # unique ID for this episode
             "transcript": transcription["transcript"],
             "words": transcription["words"],
