@@ -2,10 +2,14 @@
 
 import os
 import json
-from fastapi import APIRouter, HTTPException
+import uuid
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from groq import Groq
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+
+from database import get_db, Episode, GeneratedContent
 
 load_dotenv()
 
@@ -14,6 +18,7 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
 class AnalyzeRequest(BaseModel):
+    file_id: str
     transcript: str
     words: list
     episode_title: str = ""
@@ -48,7 +53,7 @@ def find_timestamp(words: list, target_text: str, search_from: float = 0) -> dic
 
 
 @router.post("/")
-async def analyze_transcript(body: AnalyzeRequest):
+async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db)):
     if not body.transcript:
         raise HTTPException(status_code=400, detail="Transcript is empty")
 
@@ -166,8 +171,114 @@ Rules:
             clip.pop("start_text", None)
             clip.pop("end_text", None)
 
+        # ── Save to PostgreSQL ────────────────────────────────────────────
+
+        # Update the Episode record with analysis results
+        episode = db.query(Episode).filter(Episode.id == body.file_id).first()
+        if episode:
+            episode.episode_summary = analysis.get("episode_summary", "")
+            episode.main_themes = analysis.get("main_themes", [])
+            episode.topics_discussed = analysis.get("topics_discussed", [])
+            if body.episode_title:
+                episode.title = body.episode_title
+        else:
+            # Episode wasn't created during upload — create it now
+            episode = Episode(
+                id=body.file_id,
+                title=body.episode_title or "Untitled Podcast",
+                filename="",
+                transcript=body.transcript[:500],  # Store a preview
+                word_count=len(body.words),
+                episode_summary=analysis.get("episode_summary", ""),
+                main_themes=analysis.get("main_themes", []),
+                topics_discussed=analysis.get("topics_discussed", []),
+            )
+            db.add(episode)
+
+        # Save each clip as GeneratedContent
+        for i, clip in enumerate(analysis.get("clips", [])):
+            content = GeneratedContent(
+                id=str(uuid.uuid4()),
+                episode_id=body.file_id,
+                content_type="clip",
+                title=clip.get("title", f"Clip {i+1}"),
+                body=clip.get("summary", ""),
+                metadata={
+                    "viral_score": clip.get("viral_score", 0),
+                    "start_time": clip.get("start_time", 0),
+                    "end_time": clip.get("end_time", 0),
+                    "hook_original": clip.get("hook_original", ""),
+                    "hook_rewritten": clip.get("hook_rewritten", ""),
+                    "clip_type": clip.get("clip_type", ""),
+                    "why_viral": clip.get("why_viral", ""),
+                },
+            )
+            db.add(content)
+
+        # Save each quote as GeneratedContent
+        for i, quote in enumerate(analysis.get("quotes", [])):
+            content = GeneratedContent(
+                id=str(uuid.uuid4()),
+                episode_id=body.file_id,
+                content_type="quote",
+                title=quote.get("theme", f"Quote {i+1}"),
+                body=quote.get("text", ""),
+                metadata={
+                    "speaker": quote.get("speaker", "Unknown"),
+                    "viral_score": quote.get("viral_score", 0),
+                    "start_time": quote.get("start_time", 0),
+                    "end_time": quote.get("end_time", 0),
+                    "why_viral": quote.get("why_viral", ""),
+                },
+            )
+            db.add(content)
+
+        # Save twitter thread
+        if analysis.get("twitter_thread"):
+            content = GeneratedContent(
+                id=str(uuid.uuid4()),
+                episode_id=body.file_id,
+                content_type="twitter_thread",
+                title="Twitter Thread",
+                body=json.dumps(analysis["twitter_thread"]),
+                metadata={},
+            )
+            db.add(content)
+
+        # Save linkedin post
+        if analysis.get("linkedin_post"):
+            content = GeneratedContent(
+                id=str(uuid.uuid4()),
+                episode_id=body.file_id,
+                content_type="linkedin",
+                title="LinkedIn Post",
+                body=analysis["linkedin_post"],
+                metadata={},
+            )
+            db.add(content)
+
+        # Save instagram caption
+        if analysis.get("instagram_caption"):
+            content = GeneratedContent(
+                id=str(uuid.uuid4()),
+                episode_id=body.file_id,
+                content_type="instagram",
+                title="Instagram Caption",
+                body=analysis["instagram_caption"],
+                metadata={},
+            )
+            db.add(content)
+
+        db.commit()
+
+        # ── Build response ────────────────────────────────────────────────
+
         return {
             "success": True,
+            "episode": {
+                "title": episode.title or "Untitled Podcast",
+                "summary": analysis.get("episode_summary", "")
+            },
             "quotes": analysis.get("quotes", []),
             "clips": analysis.get("clips", []),
             "episode_summary": analysis.get("episode_summary", ""),
@@ -184,4 +295,74 @@ Rules:
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=500, detail=f"Invalid JSON from Groq: {str(e)}")
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── GET /analyze/{file_id} — Fetch saved analysis from DB ────────────────────
+
+@router.get("/{file_id}")
+async def get_analysis(file_id: str, db: Session = Depends(get_db)):
+    # Look up the episode
+    episode = db.query(Episode).filter(Episode.id == file_id).first()
+    if not episode:
+        raise HTTPException(status_code=404, detail="Analysis not found or still processing")
+
+    # Get all generated content for this episode
+    contents = db.query(GeneratedContent).filter(GeneratedContent.episode_id == file_id).all()
+
+    # Separate by content type
+    clips = []
+    quotes = []
+    twitter_thread = []
+    linkedin_post = ""
+    instagram_caption = ""
+
+    for c in contents:
+        if c.content_type == "clip":
+            clips.append({
+                "title": c.title,
+                "summary": c.body,
+                "viral_score": c.metadata.get("viral_score", 0),
+                "start_time": c.metadata.get("start_time", 0),
+                "end_time": c.metadata.get("end_time", 0),
+                "hook_original": c.metadata.get("hook_original", ""),
+                "hook_rewritten": c.metadata.get("hook_rewritten", ""),
+                "clip_type": c.metadata.get("clip_type", ""),
+                "why_viral": c.metadata.get("why_viral", ""),
+            })
+        elif c.content_type == "quote":
+            quotes.append({
+                "text": c.body,
+                "speaker": c.metadata.get("speaker", "Unknown"),
+                "theme": c.title,
+                "viral_score": c.metadata.get("viral_score", 0),
+                "start_time": c.metadata.get("start_time", 0),
+                "end_time": c.metadata.get("end_time", 0),
+                "why_viral": c.metadata.get("why_viral", ""),
+            })
+        elif c.content_type == "twitter_thread":
+            try:
+                twitter_thread = json.loads(c.body)
+            except json.JSONDecodeError:
+                twitter_thread = []
+        elif c.content_type == "linkedin":
+            linkedin_post = c.body
+        elif c.content_type == "instagram":
+            instagram_caption = c.body
+
+    return {
+        "success": True,
+        "episode": {
+            "title": episode.title or "Untitled Podcast",
+            "summary": episode.episode_summary or ""
+        },
+        "quotes": quotes,
+        "clips": clips,
+        "episode_summary": episode.episode_summary or "",
+        "main_themes": episode.main_themes or [],
+        "topics_discussed": episode.topics_discussed or [],
+        "twitter_thread": twitter_thread,
+        "linkedin_post": linkedin_post,
+        "instagram_caption": instagram_caption,
+    }
