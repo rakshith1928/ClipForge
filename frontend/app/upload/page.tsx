@@ -14,6 +14,7 @@ export default function UploadPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [progress, setProgress] = useState(0);
   const [transcript, setTranscript] = useState("");
+  const [fileId, setFileId] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
 
@@ -58,9 +59,12 @@ export default function UploadPage() {
           setProgress(100);
           setStatus("done");
           setTranscript(data.transcript);
+          setFileId(data.file_id);
 
-          // Store in sessionStorage so the next page can use it
-          sessionStorage.setItem("episode", JSON.stringify(data));
+          // Redirect straight to the ID-based analyze page
+          // The backend has already saved the episode — no need for sessionStorage
+          router.push(`/analyze/${data.file_id}`);
+
         } catch (e) {
           setStatus("error");
           setError("Failed to parse response");
@@ -223,10 +227,10 @@ export default function UploadPage() {
               </div>
   
               <button
-                onClick={() => router.push("/analyze")}
+                onClick={() => router.push(`/analyze/${fileId}`)}
                 className="w-full premium-gradient-bg text-on-primary-fixed font-bold py-5 rounded-full glow-shadow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-lg mt-4"
               >
-                Find Viral Clips & Quotes <span className="material-symbols-outlined">auto_awesome</span>
+                Find Viral Clips &amp; Quotes <span className="material-symbols-outlined">auto_awesome</span>
               </button>
             </div>
           )}

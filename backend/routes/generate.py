@@ -8,11 +8,13 @@ import os
 import uuid
 import subprocess
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
-from fastapi.staticfiles import StaticFiles
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
+from sqlalchemy.orm import Session
+
+from database import get_db, GeneratedContent
 
 router = APIRouter(prefix="/generate", tags=["generate"])
 
@@ -24,12 +26,14 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 class ClipRequest(BaseModel):
     file_id: str        # the unique ID from Phase 2 upload
+    episode_id: str     # links to the Episode table
     start_time: float   # start in seconds
     end_time: float     # end in seconds
     title: str = ""     # optional title for filename
 
 
 class QuoteCardRequest(BaseModel):
+    episode_id: str     # links to the Episode table
     quote_text: str
     speaker: str = ""
     theme: str = ""
@@ -181,14 +185,13 @@ def generate_quote_card(
 # ── Route: POST /generate/clip ───────────────────────────────────────────────
 
 @router.post("/clip")
-async def create_clip(body: ClipRequest):
-    """Cut a video clip and return a download URL."""
+async def create_clip(body: ClipRequest, db: Session = Depends(get_db)):
+    """Cut a video clip, save it to DB, and return a download URL."""
     try:
         video_path = find_video_file(body.file_id)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    # Generate output filename
     clip_id = str(uuid.uuid4())[:8]
     safe_title = body.title.replace(" ", "_")[:30] if body.title else "clip"
     output_filename = f"clip_{safe_title}_{clip_id}.mp4"
@@ -198,6 +201,24 @@ async def create_clip(body: ClipRequest):
         cut_clip(video_path, body.start_time, body.end_time, output_path)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    # Save to DB so we can track every generated clip
+    content = GeneratedContent(
+        id=str(uuid.uuid4()),
+        episode_id=body.episode_id,
+        content_type="clip_file",
+        title=body.title or f"Clip {clip_id}",
+        body="",
+        file_path=str(output_path),
+        metadata={
+            "start_time": body.start_time,
+            "end_time": body.end_time,
+            "duration": round(body.end_time - body.start_time, 1),
+            "download_url": f"/files/{output_filename}",
+        },
+    )
+    db.add(content)
+    db.commit()
 
     return {
         "success": True,
@@ -211,8 +232,8 @@ async def create_clip(body: ClipRequest):
 # ── Route: POST /generate/quote-card ────────────────────────────────────────
 
 @router.post("/quote-card")
-async def create_quote_card(body: QuoteCardRequest):
-    """Generate a quote card image and return a download URL."""
+async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(get_db)):
+    """Generate a quote card image, save it to DB, and return a download URL."""
     card_id = str(uuid.uuid4())[:8]
     output_filename = f"quote_card_{card_id}.png"
     output_path = UPLOAD_DIR / output_filename
@@ -229,6 +250,23 @@ async def create_quote_card(body: QuoteCardRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    # Save to DB so we can track every generated quote card
+    content = GeneratedContent(
+        id=str(uuid.uuid4()),
+        episode_id=body.episode_id,
+        content_type="quote_card",
+        title=f"Quote Card — {body.speaker}" if body.speaker else "Quote Card",
+        body=body.quote_text,
+        file_path=str(output_path),
+        metadata={
+            "speaker": body.speaker,
+            "theme": body.theme,
+            "download_url": f"/files/{output_filename}",
+        },
+    )
+    db.add(content)
+    db.commit()
 
     return {
         "success": True,
