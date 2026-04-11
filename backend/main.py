@@ -5,12 +5,16 @@ from fastapi.staticfiles import StaticFiles
 from routes.upload import router as upload_router
 from routes.analyze import router as analyze_router
 from routes.generate import router as generate_router
+from database import init_db
 from pathlib import Path
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="PodClip API", version="0.1.0")
+
+# Create database tables on startup
+init_db()
 
 app.add_middleware(
     CORSMiddleware,
