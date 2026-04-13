@@ -241,7 +241,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
     start = datetime.combine(body.start_date, datetime.min.time())
     scheduled = []
 
-    # 🔥 Fix 2 — separate index per platform for clean round-robin
+    # Use separate index per platform for clean round-robin
     clip_idx = 0
     quote_idx = 0
     thread_idx = 0
@@ -254,7 +254,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
             weekday = scheduled_date.weekday()
 
             # ── Twitter — daily ──────────────────────────────────────────────
-            # 🔥 Fix 1 — removed unused twitter_pool variable
+            # Twitter — daily distribution logic
             if day % 3 == 0:
                 content_list = clips if clips else quotes
                 content = content_list[clip_idx % len(content_list)]
@@ -285,7 +285,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
             if weekday in LINKEDIN_DAYS:
                 content_list = linkedin if linkedin else quotes
                 content = content_list[linkedin_idx % len(content_list)]
-                linkedin_idx += 1  # 🔥 Fix 2 — proper index
+                linkedin_idx += 1
                 post_time = scheduled_date.replace(hour=PLATFORM_HOURS["linkedin"], minute=0, second=0)
                 db.add(ScheduledPost(
                     id=str(uuid.uuid4()),
@@ -303,7 +303,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
             if weekday in INSTAGRAM_DAYS:
                 content_list = instagram if instagram else quotes
                 content = content_list[instagram_idx % len(content_list)]
-                instagram_idx += 1  # 🔥 Fix 2 — proper index
+                instagram_idx += 1
                 post_time = scheduled_date.replace(hour=PLATFORM_HOURS["instagram"], minute=0, second=0)
                 db.add(ScheduledPost(
                     id=str(uuid.uuid4()),
@@ -317,7 +317,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
                 ))
                 scheduled.append(1)
 
-        # 🔥 Fix 3 — commit inside try block
+        # Finalize scheduling commit
         db.commit()
 
         return {
