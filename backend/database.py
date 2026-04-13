@@ -38,7 +38,7 @@ class Episode(Base):
     episode_summary = Column(Text, nullable=True)
     main_themes = Column(JSON, default=list)
     topics_discussed = Column(JSON, default=list)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
 # ── Table 2: Generated Content ───────────────────────────────────────────────

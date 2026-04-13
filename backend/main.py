@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from routes.upload import router as upload_router
 from routes.analyze import router as analyze_router
 from routes.generate import router as generate_router
+from routes.calendar import router as calendar_router
 from database import init_db
 from pathlib import Path
 
@@ -30,6 +31,7 @@ app.mount("/files", StaticFiles(directory="uploads"), name="files")
 app.include_router(upload_router)
 app.include_router(analyze_router)
 app.include_router(generate_router)
+app.include_router(calendar_router)
 
 @app.get("/health")
 def health_check():
