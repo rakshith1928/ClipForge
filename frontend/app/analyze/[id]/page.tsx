@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnalysisHeader } from '../../../components/analyze/AnalysisHeader';
 import { MediaPlaybackBar } from '../../../components/analyze/MediaPlaybackBar';
@@ -114,6 +114,16 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState("Clips");
   const [isSyncing, setIsSyncing] = useState(true);
   const [statusText, setStatusText] = useState("Analyzing...");
+  
+  // Playback State
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  // Filtering State
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
 
   // Real data state
   const [episodeMetadata, setEpisodeMetadata] = useState({
@@ -154,6 +164,14 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
             summary: data.episode?.summary || data.episode_summary || ""
           });
 
+          if (data.episode?.filename) {
+            setAudioUrl(`${API_BASE}/files/${data.episode.filename}`);
+          }
+
+          if (data.episode?.duration) {
+            setTotalDuration(data.episode.duration);
+          }
+
           if (data.clips && data.clips.length > 0) {
             const mappedClips: FrontendClip[] = data.clips.map((c: any, i: number) => ({
               id: `clip-${i}`,
@@ -164,7 +182,9 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
               endTime: c.end_time || 0,
               summary: c.summary || "",
               originalHook: c.hook_original || "",
-              aiHook: c.hook_rewritten || ""
+              aiHook: c.hook_rewritten || "",
+              clipType: c.clip_type || "insight",
+              whyViral: c.why_viral || ""
             }));
             setClips(mappedClips);
           }
@@ -192,6 +212,66 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
       clearInterval(pollInterval);
     };
   }, [params.id]);
+
+  const handleTogglePlayback = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (time: number) => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  const handleClipPlay = (startTime: number) => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = startTime;
+    audioRef.current.play();
+    setIsPlaying(true);
+    // Scroll to player if needed
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle audio events
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onEnded = () => setIsPlaying(false);
+    
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('ended', onEnded);
+    
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, [audioUrl]);
+
+  // Filtering Logic
+  const filteredClips = useMemo(() => {
+    if (!selectedTopic) return clips;
+    return clips.filter(clip => 
+      clip.summary.toLowerCase().includes(selectedTopic.toLowerCase()) ||
+      clip.title.toLowerCase().includes(selectedTopic.toLowerCase()) ||
+      (clip.clipType && clip.clipType.toLowerCase() === selectedTopic.toLowerCase())
+    );
+  }, [clips, selectedTopic]);
+
+  const filteredQuotes = useMemo(() => {
+    if (!selectedTopic) return fullAnalysis?.quotes || [];
+    return (fullAnalysis?.quotes || []).filter(quote => 
+      quote.text.toLowerCase().includes(selectedTopic.toLowerCase()) ||
+      quote.theme.toLowerCase().includes(selectedTopic.toLowerCase())
+    );
+  }, [fullAnalysis, selectedTopic]);
 
   const handleGenerateClip = async (clip: FrontendClip) => {
     setGeneratingClipId(clip.id);
@@ -250,8 +330,22 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   return (
     <div className="bg-[#0e0e10] text-[#e5e1e4] font-body selection:bg-[#d3bfff]/30 min-h-screen pb-32 font-['Manrope']">
       <AnalysisHeader statusText={statusText} isSyncing={isSyncing} />
+      
+      {audioUrl && (
+        <audio 
+          ref={audioRef} 
+          src={audioUrl} 
+          onLoadedMetadata={(e) => setTotalDuration(e.currentTarget.duration)}
+        />
+      )}
 
-      <MediaPlaybackBar />
+      <MediaPlaybackBar 
+        currentTime={currentTime}
+        totalTime={totalDuration}
+        isPlaying={isPlaying}
+        onToggle={handleTogglePlayback}
+        onSeek={handleSeek}
+      />
 
       <header className="px-6 mb-8">
         <h2
@@ -273,18 +367,21 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
         topics={topics}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        selectedTopic={selectedTopic}
+        onTopicChange={setSelectedTopic}
       />
 
       <main className="px-6 space-y-6">
 
         {/* ── CLIPS TAB ── */}
-        {activeTab === "Clips" && clips.length > 0 && (
+        {activeTab === "Clips" && filteredClips.length > 0 && (
           <>
-            {clips.map(clip => (
+            {filteredClips.map(clip => (
               <ClipCard
                 key={clip.id}
                 clip={clip}
                 onGenerate={handleGenerateClip}
+                onPlay={handleClipPlay}
                 isGenerating={generatingClipId === clip.id}
                 downloadUrl={generatingClipId === clip.id ? null : clipDownloadUrls[clip.id] ? `${API_BASE}${clipDownloadUrls[clip.id]}` : null}
               />
@@ -301,9 +398,9 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
         )}
 
         {/* ── QUOTES TAB ── */}
-        {activeTab === "Quotes" && fullAnalysis?.quotes && (
+        {activeTab === "Quotes" && filteredQuotes.length > 0 && (
           <div className="space-y-4">
-            {fullAnalysis.quotes.map((quote, i) => (
+            {filteredQuotes.map((quote, i) => (
               <div key={i} className="bg-[#18181b] border border-[rgba(73,69,81,0.15)] rounded-2xl p-6 relative overflow-hidden group shadow-[0_0_40px_-10px_rgba(186,158,255,0.05)]">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">

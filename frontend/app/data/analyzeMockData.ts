@@ -8,6 +8,8 @@ export type Clip = {
   summary: string;
   originalHook: string;
   aiHook: string;
+  clipType?: string;    // e.g. Insight, Story, Revelation
+  whyViral?: string;    // AI reasoning
   previewAudioUrl?: string;
   imageUrl?: string;
 };

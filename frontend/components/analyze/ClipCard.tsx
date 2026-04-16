@@ -6,13 +6,12 @@ import type { Clip } from '../../app/data/analyzeMockData';
 export interface ClipCardProps {
   clip: Clip;
   onGenerate: (clip: Clip) => void;
+  onPlay?: (startTime: number) => void;
   isGenerating?: boolean;
   downloadUrl?: string | null;
 }
 
-export function ClipCard({ clip, onGenerate, isGenerating = false, downloadUrl }: ClipCardProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-
+export function ClipCard({ clip, onGenerate, onPlay, isGenerating = false, downloadUrl }: ClipCardProps) {
   return (
     <article
       className="bg-[#18181b] rounded-2xl p-5 relative overflow-hidden group"
@@ -36,19 +35,19 @@ export function ClipCard({ clip, onGenerate, isGenerating = false, downloadUrl }
         </div>
 
         <button
-          onClick={() => setIsPlaying(!isPlaying)}
-          className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform hover:scale-110"
+          onClick={() => onPlay?.(clip.startTime)}
+          className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
           style={{
             background: "rgba(38, 37, 40, 0.4)",
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
-            color: isPlaying ? "#ffffff" : "#ba9eff",
-            border: isPlaying ? "1px solid #ba9eff" : "1px solid transparent"
+            color: "#ba9eff",
+            border: "1px solid transparent"
           }}
           title="Play Preview"
         >
           <span className="material-symbols-outlined">
-            {isPlaying ? 'pause_circle' : 'play_circle'}
+            play_circle
           </span>
         </button>
       </div>
