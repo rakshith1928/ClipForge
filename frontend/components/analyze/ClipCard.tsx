@@ -36,18 +36,18 @@ export function ClipCard({ clip, onGenerate, onPlay, isGenerating = false, downl
 
         <button
           onClick={() => onPlay?.(clip.startTime)}
-          className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:bg-[#ba9eff] hover:text-[#18181b] active:scale-95 group/play"
           style={{
             background: "rgba(38, 37, 40, 0.4)",
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
             color: "#ba9eff",
-            border: "1px solid transparent"
+            border: "1px solid rgba(186, 158, 255, 0.2)"
           }}
           title="Play Preview"
         >
-          <span className="material-symbols-outlined">
-            play_circle
+          <span className="material-symbols-outlined text-[20px]">
+            play_arrow
           </span>
         </button>
       </div>
