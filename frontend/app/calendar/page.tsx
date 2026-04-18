@@ -1,6 +1,6 @@
 // frontend/app/calendar/page.tsx
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type Post = {
   id: string;
@@ -98,10 +98,19 @@ export default function CalendarPage() {
   const [toastMsg, setToastMsg] = useState("");
   const [toastVis, setToastVis] = useState(false);
 
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setToastVis(true);
-    setTimeout(() => setToastVis(false), 3000);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      setToastVis(false);
+    }, 3000);
   };
 
   // Load episodes on mount
