@@ -11,6 +11,9 @@ type Post = {
   status: string;
 };
 
+// Replace hardcoded localhost where possible with an env var approach
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 const PLATFORM_ICONS: Record<string, string> = {
   twitter: "𝕏",
   linkedin: "💼",
@@ -18,16 +21,16 @@ const PLATFORM_ICONS: Record<string, string> = {
 };
 
 const CONTENT_COLORS: Record<string, string> = {
-  clip: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  quote: "bg-violet-500/20 text-violet-400 border-violet-500/30",
+  clip: "bg-[#7c3aed]/20 text-[#d2bbff] border-[#7c3aed]/30",
+  quote: "bg-[#7c3aed]/20 text-[#d2bbff] border-[#7c3aed]/30",
   twitter_thread: "bg-sky-500/20 text-sky-400 border-sky-500/30",
   linkedin: "bg-indigo-500/20 text-indigo-400 border-indigo-500/30",
   instagram: "bg-pink-500/20 text-pink-400 border-pink-500/30",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  scheduled: "text-yellow-400",
-  posted: "text-green-400",
+  scheduled: "text-[#d2bbff]",
+  posted: "text-[#10b981]", // Success Accent
   skipped: "text-zinc-500",
 };
 
@@ -42,101 +45,103 @@ function groupByDate(posts: Post[]): Record<string, Post[]> {
   }, {} as Record<string, Post[]>);
 }
 
+// In-house sleek Toast Component (Zinc Ether design)
+const Toast = ({ message, visible }: { message: string, visible: boolean }) => (
+  <div
+    className={`fixed bottom-6 right-6 transition-all duration-300 transform ${
+      visible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"
+    } bg-[#18181b] border border-[#27272a] shadow-2xl rounded-xl px-5 py-3.5 flex items-center gap-3 z-50`}
+  >
+    <span className="text-[#10b981] text-lg">✅</span>
+    <span className="text-white text-sm font-medium">{message}</span>
+  </div>
+);
+
+// Skeleton Timeline component for async fetches
+const TimelineSkeleton = () => (
+  <div className="space-y-6">
+    {[1, 2].map((group) => (
+      <div key={group} className="animate-pulse">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="h-4 bg-[#27272a] rounded w-24"></div>
+          <div className="flex-1 h-px bg-[#27272a]"></div>
+        </div>
+        <div className="space-y-3">
+          {[1, 2].map((item) => (
+            <div key={item} className="bg-[#18181b] border border-[#27272a] rounded-xl p-5 flex items-start gap-4 h-24">
+              <div className="w-10 h-10 bg-[#27272a] rounded-full flex-shrink-0"></div>
+              <div className="flex-1 space-y-3">
+                <div className="flex gap-2">
+                  <div className="h-4 bg-[#27272a] rounded w-16"></div>
+                  <div className="h-4 bg-[#27272a] rounded w-20"></div>
+                </div>
+                <div className="h-3 bg-[#27272a] rounded w-[80%]"></div>
+                <div className="h-3 bg-[#27272a] rounded w-[60%]"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 export default function CalendarPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [selectedEpisode, setSelectedEpisode] = useState<string>("");
-  const [startDate, setStartDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [scheduling, setScheduling] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
+  
+  // Toast State
+  const [toastMsg, setToastMsg] = useState("");
+  const [toastVis, setToastVis] = useState(false);
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setToastVis(true);
+    setTimeout(() => setToastVis(false), 3000);
+  };
 
   // Load episodes on mount
+  const fetchEpisodes = async () => {
+    try {
+      const r = await fetch(`${API_BASE}/calendar/episodes`);
+      const data = await r.json();
+      const payload = data.data?.episodes || [];
+      setEpisodes(payload);
+      
+      // Auto-select latest episode
+      if (payload.length > 0 && !selectedEpisode) {
+        setSelectedEpisode(payload[0].id);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Error connecting to database");
+    }
+  };
+
   useEffect(() => {
-    fetch("http://localhost:8000/calendar/episodes")
-      .then(r => r.json())
-      .then(data => {
-        const payload = data.data?.episodes || [];
-        setEpisodes(payload);
-        if (payload.length > 0) {
-          setSelectedEpisode(payload[0].id);
-        }
-      })
-      .catch(console.error);
+    fetchEpisodes();
   }, []);
 
-  // Load posts when episode changes
+  // Load posts securely when episode changes
   useEffect(() => {
     if (!selectedEpisode) return;
     setStatus("loading");
-    fetch(`http://localhost:8000/calendar/posts/${selectedEpisode}`)
+    fetch(`${API_BASE}/calendar/posts/${selectedEpisode}`)
       .then(r => r.json())
       .then(data => {
-        const posts = data.data?.posts || [];
-        setPosts(posts);
-        setStatus(posts.length > 0 ? "done" : "idle");
+        const payload = data.data?.posts || [];
+        setPosts(payload);
+        setStatus(payload.length > 0 ? "done" : "idle");
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        setStatus("idle");
+      });
   }, [selectedEpisode]);
-
-  // Save current analysis to database
-  const handleSaveContent = async () => {
-    const episode = JSON.parse(sessionStorage.getItem("episode") || "{}");
-    const analysis = JSON.parse(sessionStorage.getItem("analysis") || "{}");
-
-    if (!episode.file_id) {
-      alert("No episode found. Please upload first.");
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      // Save episode
-      await fetch("http://localhost:8000/calendar/save-episode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          file_id: episode.file_id,
-          title: episode.title || "",
-          transcript: episode.transcript,
-          word_count: episode.word_count || 0,
-          episode_summary: analysis.episode_summary || "",
-          main_themes: analysis.main_themes || [],
-          topics_discussed: analysis.topics_discussed || [],
-        }),
-      });
-
-      // Save content
-      await fetch("http://localhost:8000/calendar/save-content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          episode_id: episode.file_id,
-          quotes: analysis.quotes || [],
-          clips: analysis.clips || [],
-          twitter_thread: analysis.twitter_thread || [],
-          linkedin_post: analysis.linkedin_post || "",
-          instagram_caption: analysis.instagram_caption || "",
-        }),
-      });
-
-      // Refresh episodes list
-      const res = await fetch("http://localhost:8000/calendar/episodes");
-      const data = await res.json();
-      const episodesList = data.data?.episodes || [];
-      setEpisodes(episodesList);
-      setSelectedEpisode(episode.file_id);
-      alert("✅ Episode saved to database!");
-
-    } catch (err) {
-      alert("Failed to save. Check backend.");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   // Generate 30-day schedule
   const handleSchedule = async () => {
@@ -144,7 +149,7 @@ export default function CalendarPage() {
     setScheduling(true);
 
     try {
-      await fetch("http://localhost:8000/calendar/schedule", {
+      await fetch(`${API_BASE}/calendar/schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -154,14 +159,15 @@ export default function CalendarPage() {
       });
 
       // Reload posts
-      const res = await fetch(`http://localhost:8000/calendar/posts/${selectedEpisode}`);
+      const res = await fetch(`${API_BASE}/calendar/posts/${selectedEpisode}`);
       const data = await res.json();
       const scheduledPosts = data.data?.posts || [];
       setPosts(scheduledPosts);
       setStatus("done");
+      showToast("30-Day Plan Generated!");
 
     } catch (err) {
-      alert("Scheduling failed.");
+      showToast("Scheduling failed.");
     } finally {
       setScheduling(false);
     }
@@ -169,52 +175,58 @@ export default function CalendarPage() {
 
   // Mark post as posted/skipped
   const updateStatus = async (postId: string, newStatus: string) => {
-    await fetch(`http://localhost:8000/calendar/posts/${postId}/status?status=${newStatus}`, {
-      method: "PATCH",
-    });
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: newStatus } : p));
+    try {
+      await fetch(`${API_BASE}/calendar/posts/${postId}/status?status=${newStatus}`, { method: "PATCH" });
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: newStatus } : p));
+      if (newStatus === "posted") showToast("Post marked as successful!");
+    } catch (err) {
+      showToast("Failed to update status");
+    }
   };
 
   const grouped = groupByDate(posts);
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white">
+    <main className="min-h-screen bg-[#09090b] text-[#e5e1e4] font-sans selection:bg-[#7c3aed]/30 relative pb-20">
+      
+      {/* Toast Overlay */}
+      <Toast message={toastMsg} visible={toastVis} />
+
       {/* Header */}
-      <div className="border-b border-zinc-800 px-8 py-5">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+      <div className="border-b border-[#27272a] px-5 sm:px-8 py-5 sticky top-0 bg-[#09090b]/80 backdrop-blur-md z-40">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-bold text-xl tracking-tight">Content Calendar</h1>
-            <p className="text-zinc-500 text-sm mt-0.5">Your 30-day auto-drip engine</p>
+            <h1 className="font-bold text-xl tracking-tight text-white">Content Calendar</h1>
+            <p className="text-[#a1a1aa] text-sm mt-0.5">Your 30-day auto-drip engine</p>
           </div>
           <button
-            onClick={handleSaveContent}
-            disabled={saving}
-            className="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
+            onClick={fetchEpisodes}
+            className="w-full sm:w-auto bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all"
           >
-            {saving ? "Saving..." : "💾 Save Current Episode"}
+            🔄 Refresh Database
           </button>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-8 py-8">
+      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-8">
 
-        {/* Controls */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 mb-8">
-          <div className="grid grid-cols-3 gap-4">
+        {/* Global Controls */}
+        <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 mb-8 hover:border-[#353437] transition-colors">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Episode selector */}
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-2">Episode</label>
+              <label className="text-xs text-[#a1a1aa] uppercase tracking-widest block mb-2 font-semibold">Episode</label>
               <select
                 value={selectedEpisode}
                 onChange={e => setSelectedEpisode(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500"
+                className="w-full bg-[#0e0e10] border border-[#27272a] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#7c3aed] transition-colors"
               >
                 {episodes.length === 0 && (
-                  <option value="">No episodes saved yet</option>
+                  <option value="">No episodes saved in DB</option>
                 )}
                 {episodes.map(ep => (
                   <option key={ep.id} value={ep.id}>
-                    {ep.title}
+                    {ep.title || "Untitled Episode"}
                   </option>
                 ))}
               </select>
@@ -222,21 +234,22 @@ export default function CalendarPage() {
 
             {/* Start date */}
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-2">Start Date</label>
+              <label className="text-xs text-[#a1a1aa] uppercase tracking-widest block mb-2 font-semibold">Start Date</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500"
+                className="w-full bg-[#0e0e10] border border-[#27272a] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#7c3aed] transition-colors"
+                style={{ colorScheme: "dark" }}
               />
             </div>
 
             {/* Generate button */}
-            <div className="flex items-end">
+            <div className="flex items-end mt-2 md:mt-0">
               <button
                 onClick={handleSchedule}
                 disabled={scheduling || !selectedEpisode}
-                className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors"
+                className="w-full bg-gradient-to-r from-[#7c3aed] to-[#d2bbff] hover:opacity-90 disabled:opacity-50 disabled:grayscale text-[#25005a] font-bold py-3 rounded-xl transition-all shadow-[0_4px_20px_-5px_rgba(124,58,237,0.4)]"
               >
                 {scheduling ? "Scheduling..." : "🗓️ Generate 30-Day Plan"}
               </button>
@@ -244,87 +257,90 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Stats row */}
+        {/* Analytics Row */}
         {posts.length > 0 && (
-          <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[
               { label: "Total Posts", value: posts.length },
               { label: "Scheduled", value: posts.filter(p => p.status === "scheduled").length },
-              { label: "Posted", value: posts.filter(p => p.status === "posted").length },
+              { label: "Posted", value: posts.filter(p => p.status === "posted").length, isSuccess: true },
               { label: "Days Covered", value: Object.keys(grouped).length },
             ].map(stat => (
-              <div key={stat.label} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-center">
-                <p className="text-2xl font-bold text-violet-400">{stat.value}</p>
-                <p className="text-zinc-500 text-sm mt-1">{stat.label}</p>
+              <div key={stat.label} className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 flex flex-col items-center justify-center">
+                <p className={`text-3xl font-bold ${stat.isSuccess ? 'text-[#10b981]' : 'text-[#7c3aed]'}`}>
+                  {stat.value}
+                </p>
+                <p className="text-[#a1a1aa] text-xs font-semibold uppercase tracking-wider mt-2">{stat.label}</p>
               </div>
             ))}
           </div>
         )}
 
-        {/* Calendar */}
-        {status === "loading" && (
-          <div className="text-center py-16 text-zinc-500">Loading calendar...</div>
-        )}
+        {/* Calendar Timeline */}
+        {status === "loading" && <TimelineSkeleton />}
 
         {status === "idle" && (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-4">🗓️</p>
-            <p className="text-zinc-400 font-medium mb-2">No schedule yet</p>
-            <p className="text-zinc-600 text-sm">Save your episode and click Generate 30-Day Plan</p>
+          <div className="text-center py-20 bg-[#18181b] border border-[#27272a] rounded-2xl">
+            <p className="text-5xl mb-5 opacity-80">🗓️</p>
+            <p className="text-white font-semibold text-lg mb-2">No schedule generated yet</p>
+            <p className="text-[#a1a1aa] text-sm max-w-sm mx-auto">Select an episode from your database above and click "Generate 30-Day Plan" to launch the engine.</p>
           </div>
         )}
 
         {status === "done" && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {Object.entries(grouped).map(([date, dayPosts]) => (
               <div key={date}>
                 {/* Day header */}
-                <div className="flex items-center gap-3 mb-3">
-                  <p className="text-sm font-semibold text-zinc-300">{date}</p>
-                  <div className="flex-1 h-px bg-zinc-800" />
-                  <span className="text-xs text-zinc-600">{dayPosts.length} post{dayPosts.length > 1 ? "s" : ""}</span>
+                <div className="flex items-center gap-4 mb-4">
+                  <p className="text-sm font-bold text-white uppercase tracking-wider">{date}</p>
+                  <div className="flex-1 h-px bg-[#27272a]" />
+                  <span className="text-xs font-semibold text-[#a1a1aa] bg-[#27272a]/50 px-2.5 py-1 rounded-full">
+                    {dayPosts.length} post{dayPosts.length > 1 ? "s" : ""}
+                  </span>
                 </div>
 
                 {/* Day posts */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {dayPosts.map(post => (
                     <div
                       key={post.id}
-                      className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 flex items-start gap-4"
+                      className="bg-[#18181b] border border-[#27272a] hover:border-[#4a4455] rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 transition-colors"
                     >
                       {/* Platform icon */}
-                      <div className="text-2xl w-10 text-center flex-shrink-0">
+                      <div className="text-2xl w-12 h-12 bg-[#0e0e10] border border-[#27272a] rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
                         {PLATFORM_ICONS[post.platform] || "📢"}
                       </div>
 
                       {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${CONTENT_COLORS[post.content_type] || ""}`}>
+                      <div className="flex-1 min-w-0 w-full">
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${CONTENT_COLORS[post.content_type] || "bg-[#27272a] text-[#a1a1aa] border-[#353437]"}`}>
                             {post.content_type.replace("_", " ")}
                           </span>
-                          <span className={`text-xs capitalize ${STATUS_COLORS[post.status]}`}>
-                            ● {post.status}
+                          <span className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${STATUS_COLORS[post.status]}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${post.status === 'posted' ? 'bg-[#10b981]' : post.status === 'scheduled' ? 'bg-[#d2bbff]' : 'bg-gray-500'}`}></div>
+                            {post.status}
                           </span>
                         </div>
-                        <p className="text-zinc-300 text-sm leading-relaxed line-clamp-2">
+                        <p className="text-[#e5e1e4] text-sm leading-relaxed whitespace-pre-wrap line-clamp-3 hover:line-clamp-none transition-all">
                           {post.content_body}
                         </p>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-2 flex-shrink-0">
+                      <div className="flex sm:flex-col gap-2 flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
                         {post.status === "scheduled" && (
                           <>
                             <button
                               onClick={() => updateStatus(post.id, "posted")}
-                              className="text-xs bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-600/30 px-3 py-1.5 rounded-lg transition-colors"
+                              className="text-xs font-semibold bg-[#10b981]/10 hover:bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30 px-4 py-2 rounded-lg transition-colors flex-1 sm:flex-none"
                             >
                               ✓ Posted
                             </button>
                             <button
                               onClick={() => updateStatus(post.id, "skipped")}
-                              className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-400 px-3 py-1.5 rounded-lg transition-colors"
+                              className="text-xs font-semibold bg-[#27272a]/50 hover:bg-[#353437] text-[#a1a1aa] px-4 py-2 rounded-lg transition-colors flex-1 sm:flex-none"
                             >
                               Skip
                             </button>
@@ -333,9 +349,9 @@ export default function CalendarPage() {
                         {post.status !== "scheduled" && (
                           <button
                             onClick={() => updateStatus(post.id, "scheduled")}
-                            className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+                            className="text-xs font-semibold text-[#7c3aed] hover:text-[#d2bbff] underline underline-offset-4 transition-colors p-2"
                           >
-                            Undo
+                            Undo Action
                           </button>
                         )}
                       </div>
