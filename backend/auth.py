@@ -105,3 +105,91 @@ class LoginRequest(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+# ── Routes ───────────────────────────────────────────────────────────────────
+
+@router.post("/register")
+def register(body: RegisterRequest, db: Session = Depends(get_db)):
+    # Check if email already exists
+    existing = db.query(User).filter(User.email == body.email.lower()).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    try:
+        user = User(
+            id=str(uuid.uuid4()),
+            email=body.email.lower(),
+            name=body.name,
+            hashed_password=hash_password(body.password),
+            provider="local",
+        )
+        db.add(user)
+        db.commit()
+
+        return {
+            "success": True,
+            "access_token": create_access_token(user.id),
+            "refresh_token": create_refresh_token(user.id),
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+            }
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/login")
+def login(body: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == body.email.lower()).first()
+
+    if not user or not user.hashed_password:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not verify_password(body.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    return {
+        "success": True,
+        "access_token": create_access_token(user.id),
+        "refresh_token": create_refresh_token(user.id),
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "profile_pic": user.profile_pic,
+        }
+    }
+
+
+@router.post("/refresh")
+def refresh_token(body: RefreshRequest, db: Session = Depends(get_db)):
+    user_id = decode_token(body.refresh_token)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    return {
+        "success": True,
+        "access_token": create_access_token(user.id),
+        "refresh_token": create_refresh_token(user.id),
+    }
+
+
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "profile_pic": current_user.profile_pic,
+        "provider": current_user.provider,
+        "created_at": current_user.created_at.isoformat(),
+    }
