@@ -1,11 +1,9 @@
 # backend/database.py
-# This file sets up the database connection and defines all our tables.
-# We use SQLAlchemy which lets us write Python classes instead of raw SQL.
 
 import os
-from sqlalchemy import create_engine, Column, String, Float, Integer, Text, DateTime, JSON, Boolean
+from sqlalchemy import create_engine, Column, String, Float, Integer, Text, DateTime, JSON, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -13,23 +11,35 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/podclip")
 
-# Create the database engine
 engine = create_engine(DATABASE_URL)
-
-# Each database session is a unit of work
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Base class all our models inherit from
 Base = declarative_base()
 
 
-# ── Table 1: Episodes ────────────────────────────────────────────────────────
-# Stores every uploaded podcast episode
+# ── User ─────────────────────────────────────────────────────────────────────
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)   # nullable for OAuth later
+    provider = Column(String, default="local")        # local or google
+    profile_pic = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    episodes = relationship("Episode", back_populates="user")
+
+
+# ── Episode ───────────────────────────────────────────────────────────────────
 
 class Episode(Base):
     __tablename__ = "episodes"
 
-    id = Column(String, primary_key=True)           # UUID from upload
+    id = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
     title = Column(String, nullable=True)
     filename = Column(String)
     transcript = Column(Text)
@@ -38,51 +48,51 @@ class Episode(Base):
     episode_summary = Column(Text, nullable=True)
     main_themes = Column(JSON, default=list)
     topics_discussed = Column(JSON, default=list)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="episodes")
 
 
-# ── Table 2: Generated Content ───────────────────────────────────────────────
-# Stores every quote, clip, thread, etc generated from an episode
+# ── Generated Content ─────────────────────────────────────────────────────────
 
 class GeneratedContent(Base):
     __tablename__ = "generated_content"
 
     id = Column(String, primary_key=True)
-    episode_id = Column(String)                     # links back to Episode
-    content_type = Column(String)                   # quote, clip, thread, linkedin, instagram
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
+    episode_id = Column(String)
+    content_type = Column(String)
     title = Column(String, nullable=True)
-    body = Column(Text)                             # the actual content
-    metadata = Column(JSON, default=dict)           # extra data like timestamps, scores
-    file_path = Column(String, nullable=True)       # path to generated file if any
+    body = Column(Text)
+    metadata = Column(JSON, default=dict)
+    file_path = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-# ── Table 3: Scheduled Posts ─────────────────────────────────────────────────
-# The content calendar — what goes out on which day
+# ── Scheduled Post ────────────────────────────────────────────────────────────
 
 class ScheduledPost(Base):
     __tablename__ = "scheduled_posts"
 
     id = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
     episode_id = Column(String)
-    content_id = Column(String)                     # links to GeneratedContent
-    content_type = Column(String)                   # quote, clip, thread, linkedin, instagram
-    content_body = Column(Text)                     # copy of the content for easy access
-    scheduled_date = Column(DateTime)               # when to post
-    platform = Column(String)                       # twitter, linkedin, instagram
-    status = Column(String, default="scheduled")    # scheduled, posted, skipped
+    content_id = Column(String)
+    content_type = Column(String)
+    content_body = Column(Text)
+    scheduled_date = Column(DateTime)
+    platform = Column(String)
+    status = Column(String, default="scheduled")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
-# ── Create all tables ────────────────────────────────────────────────────────
+# ── DB Helpers ────────────────────────────────────────────────────────────────
 
 def init_db():
-    """Call this once to create all tables in the database."""
     Base.metadata.create_all(bind=engine)
 
 
 def get_db():
-    """Dependency that gives each request its own database session."""
     db = SessionLocal()
     try:
         yield db
