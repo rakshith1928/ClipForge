@@ -14,6 +14,10 @@ from jose import JWTError, jwt
 
 from database import get_db, User
 
+from starlette.requests import Request
+from starlette.responses import RedirectResponse
+from authlib.integrations.starlette_client import OAuth
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # ── Config ──────────────────────────────────────────────────────────────────
@@ -25,6 +29,18 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
+
+# ── OAuth Config ─────────────────────────────────────────────────────────────
+oauth = OAuth()
+oauth.register(
+    name='google',
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_id=os.getenv("GOOGLE_CLIENT_ID", ""),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET", ""),
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
 
 # ── Password helpers ─────────────────────────────────────────────────────────
 
@@ -193,3 +209,55 @@ def get_me(current_user: User = Depends(get_current_user)):
         "provider": current_user.provider,
         "created_at": current_user.created_at.isoformat(),
     }
+
+
+# ── Google OAuth Routes ──────────────────────────────────────────────────────
+
+@router.get("/google/login")
+async def google_login(request: Request):
+    """Initiates the Google OAuth flow"""
+    # Instruct google to callback to our backend callback route
+    redirect_uri = str(request.url_for('google_callback'))
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+
+@router.get("/google/callback")
+async def google_callback(request: Request, db: Session = Depends(get_db)):
+    """Handles the redirect from Google, verifying the token and logging the user in"""
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"OAuth error: {str(e)}")
+        
+    user_info = token.get('userinfo')
+    if not user_info:
+        raise HTTPException(status_code=400, detail="Could not fetch user info from Google")
+        
+    email = user_info.get("email")
+    name = user_info.get("name")
+    picture = user_info.get("picture")
+    
+    # Find or create user
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(
+            id=str(uuid.uuid4()),
+            email=email,
+            name=name,
+            provider="google",
+            profile_pic=picture
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+    # Generate JWT tokens
+    access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
+    
+    # Redirect back to frontend auth page with tokens in URL
+    # The frontend is programmed to catch these and store them securely
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    return RedirectResponse(
+        url=f"{frontend_url}/auth?token={access_token}&refresh={refresh_token}"
+    )
