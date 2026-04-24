@@ -13,7 +13,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
       // Pass the current pathname so we could theoretically redirect back after login
-      router.push(`/auth?redirect=${encodeURIComponent(pathname)}`);
+      router.replace(`/auth?redirect=${encodeURIComponent(pathname)}`);
     }
   }, [isLoading, isLoggedIn, router, pathname]);
 

@@ -23,11 +23,18 @@ function AuthForm() {
   useEffect(() => {
     const token = searchParams.get("token");
     const refresh = searchParams.get("refresh");
+    const redirect = searchParams.get("redirect");
+
     if (token) {
       localStorage.setItem("access_token", token);
       if (refresh) localStorage.setItem("refresh_token", refresh);
       window.dispatchEvent(new Event("auth-change"));
-      router.push("/");
+
+      if (redirect && redirect.startsWith("/")) {
+        router.replace(redirect);
+      } else {
+        router.replace("/");
+      }
     }
   }, [searchParams, router]);
 
@@ -58,7 +65,7 @@ function AuthForm() {
       if (!res.ok) {
         // Validation errors usually come as an array in FastAPI
         if (Array.isArray(data.detail)) {
-            throw new Error(data.detail[0]?.msg || "Validation error");
+          throw new Error(data.detail[0]?.msg || "Validation error");
         }
         throw new Error(data.detail || "Authentication failed");
       }
@@ -70,11 +77,16 @@ function AuthForm() {
         }
         // Save minimal user info
         if (data.user) {
-            localStorage.setItem("user", JSON.stringify(data.user));
-            // Trigger a custom event so Navbar can update immediately if it listens
-            window.dispatchEvent(new Event("auth-change"));
+          localStorage.setItem("user", JSON.stringify(data.user));
         }
-        router.push("/");
+        // Trigger a custom event so Navbar can update immediately if it listens
+        window.dispatchEvent(new Event("auth-change"));
+        const redirect = searchParams.get("redirect");
+        if (redirect && redirect.startsWith("/")) {
+          router.replace(redirect);
+        } else {
+          router.replace("/");
+        }
       } else {
         throw new Error("No token received");
       }
