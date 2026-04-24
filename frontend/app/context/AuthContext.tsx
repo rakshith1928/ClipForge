@@ -31,11 +31,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = localStorage.getItem("access_token");
       const userStr = localStorage.getItem("user");
-      
-      setIsLoggedIn(!!token);
-      if (userStr) {
-        setUser(JSON.parse(userStr));
+
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          const isExpired = payload.exp * 1000 < Date.now();
+
+          if (isExpired) {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+            localStorage.removeItem("user");
+            setUser(null);
+            setIsLoggedIn(false);
+          } else {
+            setIsLoggedIn(true);
+            if (userStr) {
+              setUser(JSON.parse(userStr));
+            } else {
+              setUser(null);
+            }
+          }
+        } catch (e) {
+          console.error("Invalid token format", e);
+          setIsLoggedIn(false);
+          setUser(null);
+        }
       } else {
+        setIsLoggedIn(false);
         setUser(null);
       }
     } catch (e) {
@@ -49,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     checkAuth();
-    
+
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "access_token" || e.key === "user" || e.key === null) {
         checkAuth();
@@ -71,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
-    checkAuth();
+    window.dispatchEvent(new Event("auth-change"));
     router.push("/");
   };
 
