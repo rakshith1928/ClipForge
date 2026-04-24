@@ -2,52 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { navLinks } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 
 export const Navbar = () => {
-  const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('');
-
-  const checkAuth = () => {
-    const token = localStorage.getItem('access_token');
-    const userStr = localStorage.getItem('user');
-    setIsLoggedIn(!!token);
-    
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setUserName(user.name || '');
-      } catch (e) {
-        // Ignore JSON parse errors
-      }
-    } else {
-      setUserName('');
-    }
-  };
-
-  useEffect(() => {
-    // Check initially
-    checkAuth();
-
-    // Listen to custom event and storage changes
-    window.addEventListener('auth-change', checkAuth);
-    window.addEventListener('storage', checkAuth); // Catches changes from other tabs
-
-    return () => {
-      window.removeEventListener('auth-change', checkAuth);
-      window.removeEventListener('storage', checkAuth);
-    };
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    checkAuth(); // Update state immediately
-    router.push('/');
-  };
+  const { isLoggedIn, user, logout } = useAuth();
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-transparent backdrop-blur-lg border-b border-outline-variant/10">
@@ -72,12 +31,12 @@ export const Navbar = () => {
         <div className="flex items-center gap-4">
           {isLoggedIn ? (
             <>
-              {userName && <span className="hidden md:inline text-sm font-medium text-slate-300">Hi, {userName.split(' ')[0]}</span>}
+              {user?.name && <span className="hidden md:inline text-sm font-medium text-slate-300">Hi, {user.name.split(' ')[0]}</span>}
               <Link href="/calendar" className="font-jakarta text-sm font-medium tracking-tight text-slate-400 hover:text-white transition-all">
                 Dashboard
               </Link>
               <button 
-                onClick={handleLogout}
+                onClick={logout}
                 className="premium-gradient-bg text-on-primary-fixed px-6 py-2.5 rounded-full text-sm font-bold shadow-2xl shadow-violet-900/20 active:scale-95 transition-all"
               >
                 Logout
