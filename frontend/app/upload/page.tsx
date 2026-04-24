@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { ProtectedRoute } from "../components/ProtectedRoute";
 import { 
   CloudUpload, 
   FileAudio, 
@@ -102,7 +103,8 @@ export default function UploadPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#09090b] text-[#e5e1e4] font-sans selection:bg-[#7c3aed]/30 flex flex-col relative w-full overflow-x-hidden p-6">
+    <ProtectedRoute>
+      <main className="min-h-screen bg-[#09090b] text-[#e5e1e4] font-sans selection:bg-[#7c3aed]/30 flex flex-col relative w-full overflow-x-hidden p-6">
       
       <div className="flex-1 flex flex-col justify-center items-center relative z-10 w-full max-w-2xl mx-auto py-12">
         
@@ -278,5 +280,6 @@ export default function UploadPage() {
 
       </div>
     </main>
+    </ProtectedRoute>
   );
 }

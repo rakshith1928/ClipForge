@@ -1,6 +1,7 @@
 // frontend/app/calendar/page.tsx
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { ProtectedRoute } from "../components/ProtectedRoute";
 
 type Post = {
   id: string;
@@ -212,7 +213,8 @@ export default function CalendarPage() {
   const grouped = groupByDate(posts);
 
   return (
-    <main className="min-h-screen bg-[#09090b] text-[#e5e1e4] font-sans selection:bg-[#7c3aed]/30 relative pb-20">
+    <ProtectedRoute>
+      <main className="min-h-screen bg-[#09090b] text-[#e5e1e4] font-sans selection:bg-[#7c3aed]/30 relative pb-20">
       
       {/* Toast Overlay */}
       <Toast message={toastMsg} visible={toastVis} />
@@ -389,5 +391,6 @@ export default function CalendarPage() {
         )}
       </div>
     </main>
+    </ProtectedRoute>
   );
 }

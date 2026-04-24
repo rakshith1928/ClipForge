@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { AnalysisHeader } from '../../../components/analyze/AnalysisHeader';
 import { MediaPlaybackBar } from '../../../components/analyze/MediaPlaybackBar';
 import { CategoryTabs } from '../../../components/analyze/CategoryTabs';
@@ -328,8 +329,9 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   };
 
   return (
-    <div className="bg-[#0e0e10] text-[#e5e1e4] font-body selection:bg-[#d3bfff]/30 min-h-screen pb-32 font-['Manrope']">
-      <AnalysisHeader statusText={statusText} isSyncing={isSyncing} />
+    <ProtectedRoute>
+      <div className="bg-[#0e0e10] text-[#e5e1e4] font-body selection:bg-[#d3bfff]/30 min-h-screen pb-32 font-['Manrope']">
+        <AnalysisHeader statusText={statusText} isSyncing={isSyncing} />
       
       {audioUrl && (
         <audio 
@@ -544,5 +546,6 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
 
       </main>
     </div>
+    </ProtectedRoute>
   );
 }
