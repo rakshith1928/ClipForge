@@ -6,12 +6,16 @@ import { navLinks } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 
 export const Navbar = () => {
-  const { isLoggedIn, user, logout } = useAuth();
+  const { isLoggedIn, user, logout, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-transparent backdrop-blur-lg border-b border-outline-variant/10">
       <div className="flex justify-between items-center max-w-7xl mx-auto px-6 py-4">
-        
+
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg premium-gradient-bg flex items-center justify-center font-bold text-white shadow-lg shadow-primary/20">P</div>
@@ -35,7 +39,7 @@ export const Navbar = () => {
               <Link href="/calendar" className="font-jakarta text-sm font-medium tracking-tight text-slate-400 hover:text-white transition-all">
                 Dashboard
               </Link>
-              <button 
+              <button
                 onClick={logout}
                 className="premium-gradient-bg text-on-primary-fixed px-6 py-2.5 rounded-full text-sm font-bold shadow-2xl shadow-violet-900/20 active:scale-95 transition-all"
               >

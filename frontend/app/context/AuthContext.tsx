@@ -50,14 +50,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     checkAuth();
     
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "access_token" || e.key === "user" || e.key === null) {
+        checkAuth();
+      }
+    };
+
     // Listen for custom event from login page
-    window.addEventListener("auth-change", checkAuth);
+    window.addEventListener("auth-change", checkAuth as EventListener);
     // Listen for storage events (multi-tab support)
-    window.addEventListener("storage", checkAuth);
+    window.addEventListener("storage", handleStorage);
 
     return () => {
-      window.removeEventListener("auth-change", checkAuth);
-      window.removeEventListener("storage", checkAuth);
+      window.removeEventListener("auth-change", checkAuth as EventListener);
+      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 
