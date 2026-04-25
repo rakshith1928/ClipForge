@@ -167,6 +167,7 @@ async def upload_episode(
             title=title or file.filename or "Untitled Podcast",
             filename=file.filename,
             transcript=transcription["transcript"],
+            words=transcription["words"],
             word_count=len(transcription["words"]),
             duration=transcription.get("duration", 0),
         )

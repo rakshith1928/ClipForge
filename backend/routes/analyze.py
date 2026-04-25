@@ -188,6 +188,7 @@ Rules:
                 title=body.episode_title or "Untitled Podcast",
                 filename="",
                 transcript=body.transcript[:500],  # Store a preview
+                words=body.words,
                 word_count=len(body.words),
                 episode_summary=analysis.get("episode_summary", ""),
                 main_themes=analysis.get("main_themes", []),
@@ -357,7 +358,8 @@ async def get_analysis(file_id: str, db: Session = Depends(get_db)):
             "title": episode.title or "Untitled Podcast",
             "summary": episode.episode_summary or "",
             "filename": episode.filename or "",
-            "duration": episode.duration or 0
+            "duration": episode.duration or 0,
+            "words": episode.words or [],
         },
         "quotes": quotes,
         "clips": clips,

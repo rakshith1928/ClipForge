@@ -43,6 +43,7 @@ class Episode(Base):
     title = Column(String, nullable=True)
     filename = Column(String)
     transcript = Column(Text)
+    words = Column(JSON, default=list)
     word_count = Column(Integer, default=0)
     duration = Column(Float, default=0)
     episode_summary = Column(Text, nullable=True)
