@@ -1,70 +1,168 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useRef } from 'react';
+import Link from 'next/link';
+
+const clips = [
+  {
+    label: 'Viral Hook #1',
+    title: 'Growth Secrets',
+    src: 'https://lh3.googleusercontent.com/aida/ADBb0uj7wZQS-UEJIAXXGP_LBap6a8dBQKv2yHkGlG8UhV5b9UfLXqY2nVjx46f7Idy1OA11GXqSYl4pxLohbmRF1tkspMr4ev2I1MJ3fmljvmmWTE5mDz8zrvLDGxMBKe26AL16x3gfvY7gdyu64WkEJCX616-e7rjezqYSkzRRQFUrO7_TfFX_WeeClSQGuEFZap3XTMn7iMAntcbTbGEubU5H-YoX14okggJNiBSy-odSg0xB2KoJQ1A_OWMmx74PXn6UynYzRX7NZHs',
+  },
+  {
+    label: 'Insight #4',
+    title: 'Mastery Mindset',
+    src: 'https://lh3.googleusercontent.com/aida/ADBb0uh1KkSq4TS5yWk0xSKVDlNdaxZiUs7WS6gVqeakrEOfgdpzmgTJCO2yI08bqOuI4yG1PZhRlxtd-AGSgiuhWA6stgXT51SsxQMTnAP-ZVV2x-qyEEHMs0-z-PJ4-fQ3OgAvEuAwUCnL70nrTRHegPcXlpa9HTcQn8t-bOGQD_gI4_K0SwNUljuhBTd8dG0sv5m3DCKuQe1lxNOS8ObHiv-4O9CFONb0y97Xp9_6AKHBa3PSqlgOWwEZEGcqroxfboRQyR5IN5xAAUI',
+  },
+  {
+    label: 'Quick Tip',
+    title: 'Productivity Hacks',
+    src: 'https://lh3.googleusercontent.com/aida/ADBb0ujf_aUMd0njawQ-UsSeNDOhG4l9WMttoWdqr7-6vxrKvpOr5pRlFsjLDLwLH8QQBu_dA2l_oXf5iT9-tSP2nrDEpjGv0N4cN0Epu-ZN3jL1YPKyBAB_oNwH5eujM835T3Mb-EU9VDjgMmrTiVKBv-St1J1WAq5VBC-HUt44vheMR4h54GqKKdK6DdrypqVRThmPCTHHXr6uujlNelI-CJoL11lha0uqX1OWu5eGAQmKuKl9xRFYoZm9D9XdmYGlAQ4RMqcx9hI1nxE',
+  },
+  {
+    label: 'Highlight',
+    title: 'Future Tech',
+    src: 'https://lh3.googleusercontent.com/aida/ADBb0uhBdd_45fGQnEm3JwXkro-na1VRcmi9C9lRTuZqW0lG5ji973hsu6-fQx8J7EOxb-k0e31qPiru1ZJJin8Z-R-6fWlBtpoo4fJA1tnKZGI2cleicwHOOYfyeSgCYgHU6YuCSuNvEGLjDx9a8d6s7Dwp-2QKT-WyKG8L5H0AKF3kADMPs11MXUC7kkwb8LtlO2ME8VTVMhgjjrQHpeJ92zZO7wp5V9INkU8JmVOnxsDSbjWCxiGQXr9VdcUw4UqT1KJEq33G4b567Q',
+  },
+];
 
 export const Hero = () => {
+  const heroTexts = useRef<NodeListOf<Element> | null>(null);
+
+  useEffect(() => {
+    // Staggered hero text fade-in after mount
+    heroTexts.current = document.querySelectorAll('.hero-text');
+    const t = setTimeout(() => {
+      heroTexts.current?.forEach(el => {
+        el.classList.remove('opacity-0', 'translate-y-4');
+      });
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
-    <section className="pt-40 pb-20 px-6 text-center max-w-5xl mx-auto relative z-10">
-      {/* Background Orbs */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
-      <div className="absolute top-40 right-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
-
-      {/* Hero Content */}
-      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-outline-variant/20 bg-surface-container-low text-primary text-xs font-bold tracking-widest uppercase mb-8">
-        <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-        ✨ AI-Powered Podcast Repurposing
-      </div>
-      <h1 className="text-5xl md:text-7xl font-headline font-extrabold tracking-tighter text-gradient mb-8 leading-[1.1]">
-        Turn your podcast into <br className="hidden md:block" /> 30 days of viral content
-      </h1>
-      <p className="text-lg md:text-xl text-on-surface-variant max-w-2xl mx-auto mb-12 font-body font-light leading-relaxed">
-        Upload an episode. Get viral clips, quote cards, and a scheduled content calendar—automatically. Powered by atmospheric intelligence.
-      </p>
-
-      {/* CTO Buttons */}
-      <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-20">
-        <button className="premium-gradient-bg text-white px-10 py-5 rounded-full text-lg font-bold glow-shadow flex items-center gap-3 transition-transform hover:scale-105 active:scale-95">
-          Start for Free <span className="material-symbols-outlined">arrow_forward</span>
-        </button>
-        <button className="glass-card text-on-surface px-10 py-5 rounded-full text-lg font-medium hover:bg-surface-container transition-all">
-          View Demo
-        </button>
+    <section className="relative pt-24 pb-48 overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-0 left-0 w-full h-[800px] bg-gradient-to-b from-primary-fixed/30 to-background organic-wave" />
+        <div className="absolute top-40 -left-20 w-96 h-96 bg-secondary-container/40 rounded-full blur-[100px] opacity-60" />
+        <div className="absolute top-20 -right-20 w-80 h-80 bg-primary-container/20 rounded-full blur-[100px] opacity-60" />
       </div>
 
-      {/* Hero Visual Map */}
-      <div className="relative w-full max-w-5xl mx-auto mt-20">
-        <div className="aspect-video glass-card rounded-lg overflow-hidden relative shadow-2xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="w-full h-full object-cover opacity-60" alt="Futuristic interface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgNEs9NXjqY700thcEKEm8vjHFAGhrpbCamV0CB4zklVxOynsQqci1FN7LGmrYYJCKwGhZC__VVk_xwp0T5082-lNxgRx4sCA9Fk7zAettIokMpstgRLxg3AwDNWQUP3D0as-As5Z_QuZIFbEivb5dklnxzwlEzSHkFeV05gs-XYDiVHA6C7h4XvN-T__3tMRkMVyzSCGVyuPnOmPqrCnlJcZq6XuRMiBC6DGA7_PXbQM6KzsC3RF9Jw_YVyJPYH_0YS3nqC0l74gw"/>
-          
-          <div className="absolute top-10 left-10 glass-card p-6 rounded-2xl border border-primary/20 shadow-[-10px_20px_30px_rgba(0,0,0,0.5)] hidden lg:block max-w-[240px] text-left">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full premium-gradient-bg flex items-center justify-center">
-                <span className="material-symbols-outlined text-white">calendar_month</span>
-              </div>
-              <div className="text-xs">
-                <p className="text-on-surface font-bold">Content Ready</p>
-                <p className="text-on-surface-variant">32 Clips Generated</p>
-              </div>
-            </div>
-            <div className="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
-              <div className="h-full bg-primary w-4/5"></div>
-            </div>
-          </div>
-
-          <div className="absolute bottom-10 right-10 glass-card p-6 rounded-2xl border border-secondary/20 shadow-[10px_20px_30px_rgba(0,0,0,0.5)] hidden lg:block max-w-[280px] text-left">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full bg-secondary"></div>
-              <p className="text-[10px] uppercase tracking-widest text-secondary font-bold">Viral Prediction</p>
-            </div>
-            <p className="text-2xl font-bold font-headline text-white mb-2">98.4%</p>
-            <p className="text-xs text-on-surface-variant leading-relaxed">High likelihood of trending on TikTok and Instagram Reels based on current hook trends.</p>
-          </div>
-
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-24 h-24 rounded-full premium-gradient-bg flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-[0_0_50px_rgba(186,158,255,0.5)]">
-              <span className="material-symbols-outlined text-white text-5xl translate-x-1" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-8 text-center flex flex-col items-center">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-fixed font-label-md text-label-md mb-8">
+          <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+            verified
+          </span>
+          AI-Powered Video Repurposing
         </div>
+
+        {/* Headline */}
+        <h1 className="font-display-lg text-display-lg text-on-background mb-8 max-w-4xl tracking-tight">
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-100 hero-text">Convert</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-200 hero-text">long</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-300 hero-text">videos</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-400 hero-text">into</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-500 hero-text text-primary italic">short-form</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-600 hero-text">content</span>
+        </h1>
+
+        {/* Subheading */}
+        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-12">
+          Turn your podcasts, webinars, and streams into viral clips for TikTok, Reels, and Shorts
+          in one click. Optimized by AI to find the most engaging moments automatically.
+        </p>
+
+        {/* CTAs */}
+        <div className="flex gap-4 items-center">
+          <Link
+            href="/auth"
+            className="bg-primary text-white px-10 py-5 rounded-full font-headline-md text-body-lg hover:scale-[1.05] active:scale-95 transition-all shadow-[0_12px_40px_-8px_rgba(171,53,0,0.4)] cursor-pointer"
+          >
+            Repurpose My Content
+          </Link>
+          <button className="glass-surface px-10 py-5 rounded-full font-headline-md text-body-lg border border-primary/20 hover:bg-white transition-all cursor-pointer">
+            Watch Demo
+          </button>
+        </div>
+      </div>
+
+      {/* Interactive Showcase */}
+      <div className="max-w-5xl mx-auto mt-24 px-8 relative">
+        <div className="glass-surface deep-boxed rounded-lg p-4 relative z-10">
+
+          {/* Main Video Player */}
+          <div className="relative aspect-video rounded-xl overflow-hidden bg-stone-900 shadow-inner group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              alt="Main Video Player"
+              className="w-full h-full object-cover opacity-90"
+              src="https://lh3.googleusercontent.com/aida/ADBb0uj9SJroHaJQnQMxg_6myDRpmfHFu6u8vH29_ruspJ9rYsLE_CRv51fH6dr3CybvNyC6hcQo0tu_0gjhLH9c_EpcuE-2tfzaczMK8KPF58sBjMiS8jUNr8juwSWh50XbXI5NEwOmIeHsVHeBgehgkfyO_7wHB6X-GxMwF8URPSxP-3wH5Xca7ULiBjsWQKUdf8pQmzOjJdgYJxz68Mfe6fFuzBg0LdGwR3xrlwTxD0ReB7IrgbHINfNAAcAdjtmCIAueEpuXNt0geHI"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-20 h-20 bg-primary text-white rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-2xl">
+                <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  play_arrow
+                </span>
+              </div>
+            </div>
+            <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded text-white text-xs font-medium">
+              01:24:15 / 02:30:00
+            </div>
+          </div>
+
+          {/* URL Input */}
+          <div className="mt-8 mb-8">
+            <div className="flex gap-2 p-2 bg-white rounded-full border border-primary/10 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+              <input
+                className="flex-1 bg-transparent border-none focus:ring-0 outline-none px-6 text-on-surface font-medium placeholder:text-stone-400"
+                placeholder="Drop a long video URL (YouTube, Vimeo, Twitch)..."
+                type="text"
+              />
+              <button className="bg-primary text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 hover:bg-surface-tint transition-colors">
+                <span className="material-symbols-outlined">magic_button</span>
+                Get Clips
+              </button>
+            </div>
+          </div>
+
+          {/* Sliding Clip Row */}
+          <div className="overflow-hidden w-full rounded-lg relative">
+            <div className="clip-slider">
+              {/* First set */}
+              <div className="grid grid-cols-4 gap-4 w-1/2 flex-shrink-0 pr-4">
+                {clips.map((clip, i) => (
+                  <div key={i} className="aspect-[9/16] bg-stone-200 rounded-lg overflow-hidden relative shadow-lg border border-primary/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img alt={clip.title} className="w-full h-full object-cover" src={clip.src} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute bottom-3 left-3 right-3 text-white">
+                      <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{clip.label}</p>
+                      <p className="text-xs font-semibold leading-tight">{clip.title}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Duplicate for seamless loop */}
+              <div className="grid grid-cols-4 gap-4 w-1/2 flex-shrink-0 pr-4">
+                {clips.map((clip, i) => (
+                  <div key={i} className="aspect-[9/16] bg-stone-200 rounded-lg overflow-hidden relative shadow-lg border border-primary/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img alt={clip.title} className="w-full h-full object-cover" src={clip.src} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute bottom-3 left-3 right-3 text-white">
+                      <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{clip.label}</p>
+                      <p className="text-xs font-semibold leading-tight">{clip.title}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div className="absolute -inset-10 bg-primary/10 blur-[100px] -z-10 rounded-full" />
       </div>
     </section>
   );

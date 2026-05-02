@@ -1,62 +1,68 @@
 @import "tailwindcss";
 
 @theme {
-  --color-on-tertiary-fixed: #37001d;
-  --color-on-primary-fixed-variant: #370086;
-  --color-outline: #767577;
-  --color-on-primary-fixed: #000000;
-  --color-tertiary-fixed: #ff8cbc;
-  --color-on-surface-variant: #adaaad;
-  --color-surface-bright: #2c2c2f;
-  --color-surface-container-highest: #262528;
-  --color-surface-container-low: #131315;
-  --color-error-dim: #d73357;
-  --color-primary-fixed-dim: #a27cff;
-  --color-surface-container: #19191c;
-  --color-on-tertiary-container: #2f0018;
-  --color-secondary-fixed-dim: #bdbeff;
-  --color-surface-variant: #262528;
-  --color-surface-container-high: #1f1f22;
-  --color-inverse-primary: #6e3bd7;
-  --color-on-secondary-fixed: #160bae;
-  --color-error: #ff6e84;
-  --color-on-error: #490013;
-  --color-background: #0e0e10;
-  --color-secondary: #9093ff;
-  --color-on-secondary: #080079;
-  --color-secondary-fixed: #cdcdff;
-  --color-error-container: #a70138;
-  --color-tertiary-container: #fa53a4;
-  --color-on-secondary-fixed-variant: #3a3ac8;
-  --color-tertiary: #ff6daf;
-  --color-surface-container-lowest: #000000;
-  --color-primary: #ba9eff;
-  --color-outline-variant: #48474a;
-  --color-on-background: #f9f5f8;
-  --color-tertiary-dim: #ff67ad;
-  --color-surface-dim: #0e0e10;
-  --color-secondary-dim: #6063ee;
-  --color-surface-tint: #ba9eff;
-  --color-surface: #0e0e10;
-  --color-tertiary-fixed-dim: #ff73b1;
-  --color-on-tertiary: #4b002a;
-  --color-on-primary-container: #2b006e;
-  --color-on-primary: #39008c;
-  --color-on-tertiary-fixed-variant: #740044;
-  --color-secondary-container: #2f2ebe;
-  --color-on-error-container: #ffb2b9;
-  --color-on-secondary-container: #ccccff;
-  --color-inverse-surface: #fcf8fb;
-  --color-on-surface: #f9f5f8;
-  --color-primary-dim: #8455ef;
-  --color-inverse-on-surface: #565457;
-  --color-primary-container: #ae8dff;
-  --color-primary-fixed: #ae8dff;
+  /* === ORANGE & CREAM PALETTE === */
+  --color-primary: #ab3500;
+  --color-primary-container: #ff6b35;
+  --color-primary-fixed: #ffdbd0;
+  --color-primary-fixed-dim: #ffb59d;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #5f1900;
+  --color-on-primary-fixed: #390c00;
+  --color-on-primary-fixed-variant: #832600;
+  --color-inverse-primary: #ffb59d;
+  --color-surface-tint: #ab3500;
 
-  --font-headline: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+  --color-secondary: #785741;
+  --color-secondary-container: #fdd1b4;
+  --color-secondary-fixed: #ffdcc5;
+  --color-secondary-fixed-dim: #e8bea2;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #795841;
+  --color-on-secondary-fixed: #2c1605;
+  --color-on-secondary-fixed-variant: #5e402b;
+
+  --color-tertiary: #605e5b;
+  --color-tertiary-container: #9c9996;
+  --color-tertiary-fixed: #e5e2de;
+  --color-tertiary-fixed-dim: #c9c6c2;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #32312f;
+  --color-on-tertiary-fixed: #1c1c19;
+  --color-on-tertiary-fixed-variant: #484744;
+
+  --color-background: #fff8f5;
+  --color-surface: #fff8f5;
+  --color-surface-bright: #fff8f5;
+  --color-surface-dim: #efd5c8;
+  --color-surface-variant: #f7ddd0;
+  --color-surface-tint: #ab3500;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fff1eb;
+  --color-surface-container: #ffeadf;
+  --color-surface-container-high: #fde3d6;
+  --color-surface-container-highest: #f7ddd0;
+
+  --color-on-background: #261911;
+  --color-on-surface: #261911;
+  --color-on-surface-variant: #594139;
+  --color-outline: #8d7168;
+  --color-outline-variant: #e1bfb5;
+
+  --color-inverse-surface: #3d2d24;
+  --color-inverse-on-surface: #ffede5;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  /* Typography */
+  --font-headline: var(--font-inter), "Inter", sans-serif;
   --font-body: var(--font-inter), "Inter", sans-serif;
   --font-label: var(--font-inter), "Inter", sans-serif;
 
+  /* Border radius */
   --radius-DEFAULT: 1rem;
   --radius-lg: 2rem;
   --radius-xl: 3rem;
@@ -64,33 +70,141 @@
 }
 
 body {
-    background-color: var(--color-background);
-    color: var(--color-on-background);
-    font-family: var(--font-body);
-    overflow-x: hidden;
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Glassmorphism surface */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+/* Legacy glass-card for non-landing pages */
 .glass-card {
-    background: rgba(38, 37, 40, 0.1);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(72, 71, 74, 0.15);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(171, 53, 0, 0.12);
 }
 
+/* Deep box shadow for elevated glass cards */
+.deep-boxed {
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.02),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
+    0 20px 40px -10px rgba(171, 53, 0, 0.15);
+  border: 1px solid rgba(171, 53, 0, 0.1);
+}
+
+/* Organic background wave shape */
+.organic-wave {
+  clip-path: ellipse(100% 100% at 50% 0%);
+}
+
+/* Scroll reveal animation */
+.reveal {
+  opacity: 0;
+  transform: scale(0.92) translateY(24px);
+  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.reveal.active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Continuous horizontal sliding clips */
+@keyframes slide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.clip-slider {
+  display: flex;
+  width: 200%;
+  animation: slide 20s linear infinite;
+}
+.clip-slider:hover {
+  animation-play-state: paused;
+}
+
+/* Bento card hover */
+.bento-card-hover {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bento-card-hover:hover {
+  transform: scale(1.02) translateY(-4px);
+  box-shadow: 0 30px 60px -12px rgba(171, 53, 0, 0.2);
+  border-color: rgba(171, 53, 0, 0.4);
+}
+
+/* Premium gradient (orange) */
 .premium-gradient-bg {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dim) 100%);
+  background: linear-gradient(135deg, #ab3500 0%, #ff6b35 100%);
 }
 
 .text-gradient {
-    background: linear-gradient(to bottom right, #ffffff 30%, var(--color-primary) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+  background: linear-gradient(to bottom right, #261911 30%, #ab3500 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .glow-shadow {
-    box-shadow: 0 0 40px -10px rgba(186, 158, 255, 0.3);
+  box-shadow: 0 0 40px -10px rgba(171, 53, 0, 0.4);
 }
 
+/* Material Symbols */
 .material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
+
+/* ===  Custom Typography Scale (from design system) === */
+.text-display-lg {
+  font-size: 64px;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  font-weight: 800;
+}
+.text-headline-lg {
+  font-size: 40px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+.text-headline-md {
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+.text-body-lg {
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  font-weight: 400;
+}
+.text-body-md {
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  font-weight: 400;
+}
+.text-label-md {
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+/* font-family shortcuts (all Inter in this design) */
+.font-display-lg, .font-headline-lg, .font-headline-md,
+.font-body-lg, .font-body-md, .font-label-md {
+  font-family: var(--font-inter), "Inter", sans-serif;
+}
+/* === Spacing === */
+.py-xl { padding-top: 80px; padding-bottom: 80px; }

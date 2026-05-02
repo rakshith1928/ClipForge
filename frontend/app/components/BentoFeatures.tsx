@@ -1,64 +1,107 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useRef } from 'react';
 
 export const BentoFeatures = () => {
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add('active');
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    );
+    const els = sectionRef.current?.querySelectorAll('.reveal');
+    els?.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section className="py-32 px-6 bg-surface-container-low/30 relative z-10">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-16">
-          <h2 className="text-4xl font-headline font-bold text-white">Engineered for Virality</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-6 h-auto md:h-[600px]">
-          
-          {/* Viral Prediction Card */}
-          <div className="md:col-span-3 glass-card rounded-lg p-8 flex flex-col justify-between group overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-4 opacity-10 scale-150 -rotate-12 transition-transform group-hover:scale-175">
-              <span className="material-symbols-outlined text-[120px] text-primary">trending_up</span>
+    <section className="py-xl relative" ref={sectionRef}>
+      <div className="max-w-7xl mx-auto px-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[300px]">
+
+          {/* Smart Scene Detection — large 2-row card */}
+          <div
+            className="md:col-span-8 md:row-span-2 glass-surface deep-boxed p-12 rounded-lg flex flex-col justify-between overflow-hidden bento-card-hover reveal"
+            style={{ transitionDelay: '100ms' }}
+          >
+            <div>
+              <div className="w-14 h-14 bg-primary-fixed rounded-xl flex items-center justify-center text-primary mb-6 shadow-sm">
+                <span className="material-symbols-outlined text-4xl">view_agenda</span>
+              </div>
+              <h3 className="font-headline-lg text-headline-lg mb-4">Smart Scene Detection</h3>
+              <p className="text-body-lg text-on-surface-variant max-w-md font-medium">
+                Our neural network identifies speaker changes, visual shifts, and narrative peaks to cut
+                clips exactly where it matters.
+              </p>
+            </div>
+            <div className="mt-8 flex gap-4">
+              <div className="px-6 py-3 bg-white rounded-full text-primary font-bold shadow-sm border border-primary/10">
+                Topic Detection
+              </div>
+              <div className="px-6 py-3 bg-white rounded-full text-primary font-bold shadow-sm border border-primary/10">
+                Facial Tracking
+              </div>
+            </div>
+          </div>
+
+          {/* Dynamic Captions */}
+          <div
+            className="md:col-span-4 glass-surface deep-boxed p-8 rounded-lg bg-primary-container text-white border-none bento-card-hover reveal flex flex-col justify-center"
+            style={{ transitionDelay: '200ms', background: 'var(--color-primary-container)' }}
+          >
+            <span
+              className="material-symbols-outlined text-4xl mb-4"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              closed_caption
+            </span>
+            <h3 className="font-headline-md text-2xl mb-2">Dynamic Captions</h3>
+            <p className="text-body-md opacity-90 font-medium">
+              Auto-generate stylish, word-by-word captions that keep viewers engaged.
+            </p>
+          </div>
+
+          {/* Social Scheduler */}
+          <div
+            className="md:col-span-4 glass-surface deep-boxed p-8 rounded-lg bento-card-hover reveal flex flex-col justify-center"
+            style={{ transitionDelay: '300ms' }}
+          >
+            <span className="material-symbols-outlined text-primary text-4xl mb-4">schedule_send</span>
+            <h3 className="font-headline-md text-xl mb-2">Social Scheduler</h3>
+            <p className="text-body-md text-on-surface-variant font-medium">
+              Plan your entire week of content in minutes.
+            </p>
+          </div>
+
+          {/* Stats */}
+          <div
+            className="md:col-span-4 md:row-span-1 glass-surface deep-boxed p-8 rounded-lg flex flex-col justify-center text-center bento-card-hover reveal"
+            style={{ transitionDelay: '400ms' }}
+          >
+            <div className="text-6xl font-black text-primary mb-2 tracking-tighter">10x</div>
+            <p className="font-bold text-on-surface">Faster Content Creation</p>
+          </div>
+
+          {/* Team Collaboration */}
+          <div
+            className="md:col-span-8 md:row-span-1 glass-surface deep-boxed p-8 rounded-lg flex items-center gap-8 bento-card-hover reveal"
+            style={{ transitionDelay: '500ms' }}
+          >
+            <div className="flex -space-x-4">
+              <div className="w-14 h-14 rounded-full border-4 border-white bg-stone-200 shadow-md" />
+              <div className="w-14 h-14 rounded-full border-4 border-white bg-stone-300 shadow-md" />
+              <div className="w-14 h-14 rounded-full border-4 border-white bg-stone-400 shadow-md" />
             </div>
             <div>
-              <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest mb-6">Prediction Engine</span>
-              <h3 className="text-3xl font-headline font-bold text-white mb-4">Performance Score</h3>
-              <p className="text-on-surface-variant max-w-sm">Every clip is ranked by its likelihood to go viral based on real-time platform data.</p>
-            </div>
-            <div className="mt-8 flex items-baseline gap-2">
-              <span className="text-6xl font-black font-headline text-white">98</span>
-              <span className="text-2xl text-primary font-bold">/ 100</span>
-            </div>
-          </div>
-
-          {/* Speaker Intelligence */}
-          <div className="md:col-span-3 glass-card rounded-lg p-8 flex flex-col justify-center text-center items-center group">
-            <div className="w-20 h-20 rounded-full premium-gradient-bg mb-6 flex items-center justify-center shadow-2xl">
-              <span className="material-symbols-outlined text-white text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>face</span>
-            </div>
-            <h3 className="text-2xl font-headline font-bold text-white mb-4">Speaker Intelligence</h3>
-            <p className="text-on-surface-variant max-w-xs">Automatic face tracking and active speaker detection for perfect vertical cropping.</p>
-          </div>
-
-          {/* Hook Generator */}
-          <div className="md:col-span-2 glass-card rounded-lg p-8 flex flex-col justify-between border-t-2 border-tertiary/20">
-            <h3 className="text-xl font-headline font-bold text-white mb-4">Hook Generator</h3>
-            <div className="space-y-3">
-              <div className="h-8 bg-surface-container-high rounded flex items-center px-3 text-[10px] text-on-surface-variant italic">&quot;Wait, did he just say that?&quot;</div>
-              <div className="h-8 bg-surface-container-high rounded flex items-center px-3 text-[10px] text-on-surface-variant italic">&quot;The dark secret of Podcasting...&quot;</div>
-              <div className="h-8 bg-primary/20 border border-primary/30 rounded flex items-center px-3 text-[10px] text-primary font-bold">&quot;Why 99% of podcasts fail.&quot;</div>
-            </div>
-          </div>
-
-          {/* Content Calendar */}
-          <div className="md:col-span-4 glass-card rounded-lg p-8 flex flex-col md:flex-row items-center gap-12 overflow-hidden border-t-2 border-secondary/20">
-            <div className="flex-1">
-              <h3 className="text-2xl font-headline font-bold text-white mb-4">Content Calendar</h3>
-              <p className="text-on-surface-variant">Queue up a month&apos;s worth of content in 5 minutes. We handle the distribution.</p>
-            </div>
-            <div className="hidden lg:grid grid-cols-4 gap-2 opacity-50">
-              <div className="w-12 h-16 bg-surface-container rounded-md"></div>
-              <div className="w-12 h-16 bg-secondary rounded-md"></div>
-              <div className="w-12 h-16 bg-surface-container rounded-md"></div>
-              <div className="w-12 h-16 bg-surface-container rounded-md"></div>
-              <div className="w-12 h-16 bg-surface-container rounded-md"></div>
-              <div className="w-12 h-16 bg-primary rounded-md"></div>
-              <div className="w-12 h-16 bg-surface-container rounded-md"></div>
-              <div className="w-12 h-16 bg-surface-container rounded-md"></div>
+              <h4 className="font-black text-lg">Team Collaboration</h4>
+              <p className="text-sm text-on-surface-variant font-medium">
+                Work with your editors and managers in one shared workspace.
+              </p>
             </div>
           </div>
 

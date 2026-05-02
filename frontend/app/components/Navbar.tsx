@@ -1,64 +1,72 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { navLinks } from '../data/mockData';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export const Navbar = () => {
   const { isLoggedIn, user, logout, isLoading } = useAuth();
+  const [visible, setVisible] = useState(false);
 
-  if (isLoading) {
-    return null;
-  }
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (isLoading) return null;
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-transparent backdrop-blur-lg border-b border-outline-variant/10">
-      <div className="flex justify-between items-center max-w-7xl mx-auto px-6 py-4">
-
+    <header
+      id="site-header"
+      className={`bg-stone-50/80 backdrop-blur-[40px] top-0 sticky z-50 border-b border-orange-500/20 shadow-sm transition-transform duration-700 ease-in-out ${visible ? 'translate-y-0' : '-translate-y-full'}`}
+    >
+      <nav className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
         {/* Logo */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg premium-gradient-bg flex items-center justify-center font-bold text-white shadow-lg shadow-primary/20">P</div>
-          <span className="text-xl font-bold tracking-tighter text-white font-headline">PodClip</span>
+        <div className="text-2xl font-black tracking-tighter text-orange-600 flex items-center gap-2">
+          <span className="material-symbols-outlined text-orange-600" style={{ fontVariationSettings: "'FILL' 1" }}>
+            auto_awesome
+          </span>
+          ClipForge
         </div>
 
-        {/* Links */}
-        <div className="hidden md:flex items-center gap-8 font-jakarta text-sm font-medium tracking-tight">
-          {navLinks.map((link, idx) => (
-            <Link key={idx} href={link.href} className="text-slate-400 hover:text-primary transition-colors duration-300">
-              {link.label}
-            </Link>
-          ))}
+        {/* Nav links */}
+        <div className="hidden md:flex items-center gap-8 text-stone-700 font-medium">
+          <a className="text-orange-600 font-bold border-b-2 border-orange-600 pb-1" href="#">Products</a>
+          <a className="text-stone-600 hover:text-orange-500 transition-colors" href="#">Solutions</a>
+          <a className="text-stone-600 hover:text-orange-500 transition-colors" href="#">Resources</a>
+          <a className="text-stone-600 hover:text-orange-500 transition-colors" href="#">Pricing</a>
         </div>
 
-        {/* Auth CTAs */}
+        {/* CTA */}
         <div className="flex items-center gap-4">
           {isLoggedIn ? (
             <>
-              {user?.name && <span className="hidden md:inline text-sm font-medium text-slate-300">Hi, {user.name.split(' ')[0]}</span>}
-              <Link href="/calendar" className="font-jakarta text-sm font-medium tracking-tight text-slate-400 hover:text-white transition-all">
+              {user?.name && (
+                <span className="hidden md:inline text-sm font-medium text-stone-600">
+                  Hi, {user.name.split(' ')[0]}
+                </span>
+              )}
+              <Link href="/calendar" className="text-sm text-stone-600 hover:text-orange-500 transition-colors font-medium">
                 Dashboard
               </Link>
               <button
                 onClick={logout}
-                className="premium-gradient-bg text-on-primary-fixed px-6 py-2.5 rounded-full text-sm font-bold shadow-2xl shadow-violet-900/20 active:scale-95 transition-all"
+                className="bg-primary text-white px-6 py-2.5 rounded-full font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20 cursor-pointer"
               >
                 Logout
               </button>
             </>
           ) : (
-            <>
-              <Link href="/auth" className="font-jakarta text-sm font-medium tracking-tight text-slate-400 hover:text-white transition-all">
-                Log In
-              </Link>
-              <Link href="/auth" className="premium-gradient-bg text-on-primary-fixed px-6 py-2.5 rounded-full text-sm font-bold shadow-2xl shadow-violet-900/20 active:scale-95 transition-all">
-                Sign Up
-              </Link>
-            </>
+            <Link
+              href="/auth"
+              className="bg-primary text-white px-6 py-2.5 rounded-full font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20"
+            >
+              Get Started
+            </Link>
           )}
         </div>
-
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 };

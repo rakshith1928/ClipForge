@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -8,14 +8,9 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "PodClip | Turn your podcast into 30 days of viral content",
-  description: "Upload an episode. Get viral clips, quote cards, and a scheduled content calendar—automatically.",
+  title: "ClipForge | Turn Long Videos Into Viral Short-Form Content",
+  description: "Upload a podcast, webinar, or stream. Get viral clips for TikTok, Reels, and Shorts in one click — powered by AI.",
 };
 
 export default function RootLayout({
@@ -24,12 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className={`${inter.variable} ${jakarta.variable} antialiased`}>
+      <body className={`${inter.variable} antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>
