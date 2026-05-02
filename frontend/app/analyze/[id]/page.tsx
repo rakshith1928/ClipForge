@@ -7,6 +7,7 @@ import { AnalysisHeader } from '../../../components/analyze/AnalysisHeader';
 import { MediaPlaybackBar } from '../../../components/analyze/MediaPlaybackBar';
 import { CategoryTabs } from '../../../components/analyze/CategoryTabs';
 import { ClipCard } from '../../../components/analyze/ClipCard';
+import { TranscriptView } from '../../../components/analyze/TranscriptView';
 import type { Clip as FrontendClip } from '../../data/analyzeMockData';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -22,6 +23,11 @@ export type Quote = {
 };
 
 export type FullAnalysis = {
+  episode?: {
+    words: any[];
+    title: string;
+    summary: string;
+  };
   quotes: Quote[];
   clips: any[]; // Kept generic here so we can map to FrontendClip correctly
   episode_summary: string;
@@ -429,6 +435,17 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── TRANSCRIPT TAB ── */}
+        {activeTab === "Transcript" && (
+          <div className="h-[700px]">
+            <TranscriptView 
+              words={fullAnalysis?.episode?.words || []} 
+              currentTime={currentTime} 
+              onSeek={handleSeek} 
+            />
           </div>
         )}
 
