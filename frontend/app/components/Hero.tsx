@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../context/AuthContext';
 
 const clips = [
   {
@@ -27,18 +29,46 @@ const clips = [
 ];
 
 export const Hero = () => {
-  const heroTexts = useRef<NodeListOf<Element> | null>(null);
+  const { isLoggedIn } = useAuth();
+  const router = useRouter();
+  const [url, setUrl] = useState('');
+  const [urlError, setUrlError] = useState('');
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     // Staggered hero text fade-in after mount
-    heroTexts.current = document.querySelectorAll('.hero-text');
+    const els = headingRef.current?.querySelectorAll('.hero-text');
     const t = setTimeout(() => {
-      heroTexts.current?.forEach(el => {
-        el.classList.remove('opacity-0', 'translate-y-4');
-      });
+      els?.forEach(el => el.classList.remove('opacity-0', 'translate-y-4'));
     }, 200);
     return () => clearTimeout(t);
   }, []);
+
+  const handleGetClips = () => {
+    const trimmed = url.trim();
+    if (!trimmed) {
+      setUrlError('Please enter a video URL.');
+      return;
+    }
+    try {
+      const parsed = new URL(trimmed);
+      const allowed = ['youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv', 'www.youtube.com'];
+      const isAllowed = allowed.some(h => parsed.hostname.endsWith(h));
+      if (!isAllowed) {
+        setUrlError('Only YouTube, Vimeo and Twitch URLs are supported.');
+        return;
+      }
+    } catch {
+      setUrlError('Please enter a valid URL.');
+      return;
+    }
+    setUrlError('');
+    if (isLoggedIn) {
+      router.push(`/upload?url=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push(`/auth?redirect=${encodeURIComponent(`/upload?url=${encodeURIComponent(trimmed)}`)}`);
+    }
+  };
 
   return (
     <section className="relative pt-24 pb-48 overflow-hidden">
@@ -59,7 +89,7 @@ export const Hero = () => {
         </div>
 
         {/* Headline */}
-        <h1 className="font-display-lg text-display-lg text-on-background mb-8 max-w-4xl tracking-tight">
+        <h1 ref={headingRef} className="font-display-lg text-display-lg text-on-background mb-8 max-w-4xl tracking-tight">
           <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-100 hero-text">Convert</span>{' '}
           <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-200 hero-text">long</span>{' '}
           <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-300 hero-text">videos</span>{' '}
@@ -77,7 +107,7 @@ export const Hero = () => {
         {/* CTAs */}
         <div className="flex gap-4 items-center">
           <Link
-            href="/auth"
+            href={isLoggedIn ? '/upload' : '/auth'}
             className="bg-primary text-white px-10 py-5 rounded-full font-headline-md text-body-lg hover:scale-[1.05] active:scale-95 transition-all shadow-[0_12px_40px_-8px_rgba(171,53,0,0.4)] cursor-pointer"
           >
             Repurpose My Content
@@ -114,17 +144,26 @@ export const Hero = () => {
 
           {/* URL Input */}
           <div className="mt-8 mb-8">
-            <div className="flex gap-2 p-2 bg-white rounded-full border border-primary/10 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+            <div className={`flex gap-2 p-2 bg-white rounded-full border shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all ${urlError ? 'border-red-400' : 'border-primary/10'}`}>
               <input
                 className="flex-1 bg-transparent border-none focus:ring-0 outline-none px-6 text-on-surface font-medium placeholder:text-stone-400"
                 placeholder="Drop a long video URL (YouTube, Vimeo, Twitch)..."
                 type="text"
+                value={url}
+                onChange={(e) => { setUrl(e.target.value); setUrlError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleGetClips()}
               />
-              <button className="bg-primary text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 hover:bg-surface-tint transition-colors">
+              <button
+                onClick={handleGetClips}
+                className="bg-primary text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 hover:bg-surface-tint transition-colors"
+              >
                 <span className="material-symbols-outlined">magic_button</span>
                 Get Clips
               </button>
             </div>
+            {urlError && (
+              <p className="text-red-500 text-sm mt-2 px-4 font-medium">{urlError}</p>
+            )}
           </div>
 
           {/* Sliding Clip Row */}

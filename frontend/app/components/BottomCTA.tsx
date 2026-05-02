@@ -2,8 +2,10 @@
 
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useAuth } from '../context/AuthContext';
 
 export const BottomCTA = () => {
+  const { isLoggedIn } = useAuth();
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,10 +44,10 @@ export const BottomCTA = () => {
           first 3 videos free.
         </p>
         <Link
-          href="/auth"
+          href={isLoggedIn ? '/upload' : '/auth'}
           className="inline-block bg-white text-primary px-12 py-6 rounded-full font-bold text-xl hover:scale-105 transition-transform shadow-[0_20px_50px_rgba(0,0,0,0.2)] active:scale-95"
         >
-          Start Repurposing Now
+          {isLoggedIn ? 'Go to Upload' : 'Start Repurposing Now'}
         </Link>
         <p className="mt-6 text-sm opacity-70 font-medium">No credit card required. Cancel anytime.</p>
       </div>
