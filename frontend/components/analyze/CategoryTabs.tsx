@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 
-const TABS = ["Clips", "Quotes", "Threads", "Knowledge", "Speakers"];
+const TABS = ["Clips", "Quotes", "Transcript", "Threads", "Knowledge", "Speakers"];
 
 export interface CategoryTabsProps {
   topics: string[];

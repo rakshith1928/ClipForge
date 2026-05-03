@@ -143,71 +143,112 @@ async def transcribe_audio(audio_path: Path) -> dict:
 # ── Main route: POST /upload ─────────────────────────────────────────────────
 
 @router.post("/")
-async def upload_episode(
-    file: UploadFile = File(...),
-    title: str = Form(None),
-    db: Session = Depends(get_db)
-):
-    """
-    Full pipeline:
-    1. Save uploaded file
-    2. Extract audio (if video)
-    3. Transcribe with Deepgram
-    4. Save Episode to PostgreSQL
-    5. Return transcript + word timestamps + file_id
-    """
-    allowed_types = ["video/mp4", "video/quicktime", "audio/mpeg", "audio/wav", "audio/mp3"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
+def process_file_job(job_id: str, saved_path_str: str, original_filename: str, content_type: str, title: str | None):
+    db = SessionLocal()
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        db.close()
+        return
+
+    saved_path = Path(saved_path_str)
+    audio_path = None
 
     try:
-        print(f"Saving file: {file.filename}")
-        saved_path = await save_upload(file)
-        file_id = saved_path.stem
+        job.status = "transcribing"
+        job.progress = 50
+        db.commit()
 
-        if file.content_type.startswith("video/"):
-            print("Extracting audio from video...")
+        if content_type.startswith("video/"):
+            print(f"[ffmpeg] Extracting audio for Job {job_id}...")
             audio_path = extract_audio(saved_path)
         else:
             audio_path = saved_path
 
-        print("Sending to Deepgram for transcription...")
-        transcription = await transcribe_audio(audio_path)
+        job.progress = 70
+        db.commit()
 
-        # Save Episode to DB so analyze.py can find it by file_id
+        print(f"[deepgram] Transcribing Job {job_id}...")
+        transcription = asyncio.run(transcribe_audio(audio_path))
+
+        job.progress = 90
+        db.commit()
+
         episode = Episode(
-            id=file_id,
-            title=title or file.filename or "Untitled Podcast",
-            filename=file.filename,
+            id=job_id,
+            title=title or original_filename or "Untitled Podcast",
+            filename=original_filename,
             transcript=transcription["transcript"],
             words=transcription["words"],
             word_count=len(transcription["words"]),
             duration=transcription.get("duration", 0),
         )
         db.add(episode)
+
+        job.status = "done"
+        job.progress = 100
+        job.file_id = job_id
         db.commit()
-        print(f"Episode saved to DB: {file_id}")
-
-        # Clean up raw files — transcript is now safely in the DB
-        if file.content_type.startswith("video/"):
-            _cleanup_files(saved_path, audio_path)  # delete both video + mp3
-        else:
-            _cleanup_files(saved_path)               # audio-only upload: delete mp3
-
-        return JSONResponse({
-            "success": True,
-            "title": title or file.filename,
-            "file_id": file_id,
-            "transcript": transcription["transcript"],
-            "words": transcription["words"],
-            "paragraphs": transcription["paragraphs"],
-            "word_count": len(transcription["words"]),
-            "duration": transcription.get("duration", 0),
-        })
+        print(f"[db] Job & Episode saved: {job_id}")
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        job.status = "error"
+        job.error = str(e)
+        db.commit()
+        print(f"[error] Job {job_id} failed: {e}")
+
+    finally:
+        paths_to_delete = []
+        if content_type.startswith("video/"):
+            paths_to_delete.append(saved_path)
+            if audio_path: paths_to_delete.append(audio_path)
+        else:
+            paths_to_delete.append(saved_path)
+            
+        _cleanup_files(*paths_to_delete)
+        db.close()
+
+async def upload_episode(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    title: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Receives file, saves it to disk, creates a Job ticket, and passes audio extraction
+    and transcription to BackgroundTasks. Returns job ticket instantly.
+    """
+    allowed_types = ["video/mp4", "video/quicktime", "audio/mpeg", "audio/wav", "audio/mp3"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
+
+    print(f"Saving file: {file.filename}")
+    saved_path = await save_upload(file)
+    job_id = saved_path.stem
+
+    new_job = Job(
+        id=job_id,
+        url=None,
+        title=title or file.filename,
+        status="uploading",
+        progress=100
+    )
+    db.add(new_job)
+    db.commit()
+
+    background_tasks.add_task(
+        process_file_job, 
+        job_id, 
+        str(saved_path), 
+        file.filename, 
+        file.content_type, 
+        title
+    )
+
+    return JSONResponse({
+        "job_id": job_id,
+        "status": "queued"
+    })
 
 
 # ── URL-based ingestion: POST /upload/url ────────────────────────────────────
@@ -335,9 +376,29 @@ async def start_upload_from_url(
     db: Session = Depends(get_db),
 ):
     """
-    Receives URL, immediately creates a Job ticket in DB, passes work to BackgroundTasks,
-    and returns the ticket ID to the user in milliseconds.
+    Receives URL, fetches metadata to enforce limits, immediately creates a Job ticket in DB, 
+    passes work to BackgroundTasks, and returns the ticket ID.
     """
+    # 1. Fetch metadata to check duration limit (runs in threadpool to prevent blocking)
+    try:
+        loop = asyncio.get_event_loop()
+        def fetch_info():
+            with yt_dlp.YoutubeDL({"quiet": True, "noplaylist": True, "extract_flat": True}) as ydl:
+                return ydl.extract_info(body.url, download=False)
+        
+        info = await loop.run_in_executor(None, fetch_info)
+        
+        # Some flat extractions don't give exact duration, but we try:
+        duration = info.get("duration") or 0
+        
+        # Max limit: 3600 seconds (1 hour)
+        if duration > 3600:
+            raise HTTPException(status_code=400, detail="Video exceeds the 1 hour maximum duration limit.")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid URL or failed to fetch video info.")
     job_id = str(uuid.uuid4())
     
     new_job = Job(

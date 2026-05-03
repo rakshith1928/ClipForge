@@ -123,10 +123,34 @@ function UploadPageInner() {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const data = JSON.parse(xhr.responseText);
-          setProgress(100);
-          setStatus("done");
-          setTranscript(data.transcript);
-          setFileId(data.file_id);
+          const jobId = data.job_id;
+          
+          // The upload is finished, now start polling the background task
+          const interval = setInterval(async () => {
+            try {
+              const statusRes = await fetch(`${API_BASE}/upload/status/${jobId}`);
+              if (!statusRes.ok) return;
+              
+              const statusData = await statusRes.json();
+              
+              if (statusData.status === "done") {
+                clearInterval(interval);
+                setProgress(100);
+                setStatus("done");
+                setTranscript(statusData.transcript);
+                setFileId(statusData.file_id);
+              } else if (statusData.status === "error") {
+                clearInterval(interval);
+                setStatus("error");
+                setError(statusData.error || "Failed to process video.");
+              } else {
+                setStatus(statusData.status as Status);
+              }
+            } catch (e) {
+              // Ignore network hiccups during polling
+            }
+          }, 2000);
+
         } catch {
           setStatus("error");
           setError("Failed to parse server response.");
