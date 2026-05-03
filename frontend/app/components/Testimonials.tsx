@@ -20,7 +20,7 @@ export const Testimonials = () => {
   }, []);
 
   return (
-    <section className="py-xl bg-surface-container-low overflow-hidden" ref={sectionRef}>
+    <section id="testimonials" className="py-xl bg-surface-container-low overflow-hidden" ref={sectionRef}>
       <div className="max-w-7xl mx-auto px-8">
         <h2 className="font-headline-lg text-headline-lg text-center mb-16 reveal">
           Loved by creators worldwide

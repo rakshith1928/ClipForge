@@ -20,7 +20,7 @@ export const Workflow = () => {
   }, []);
 
   return (
-    <section className="py-xl bg-surface" ref={sectionRef}>
+    <section id="workflow" className="py-xl bg-surface" ref={sectionRef}>
       <div className="max-w-7xl mx-auto px-8">
         <div className="text-center mb-24 reveal">
           <h2 className="font-headline-lg text-headline-lg text-on-surface mb-4">

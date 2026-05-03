@@ -32,10 +32,35 @@ export const Navbar = () => {
 
         {/* Nav links */}
         <div className="hidden md:flex items-center gap-8 text-stone-700 font-medium">
-          <a className="text-orange-600 font-bold border-b-2 border-orange-600 pb-1" href="#">Products</a>
-          <a className="text-stone-600 hover:text-orange-500 transition-colors" href="#">Solutions</a>
-          <a className="text-stone-600 hover:text-orange-500 transition-colors" href="#">Resources</a>
-          <a className="text-stone-600 hover:text-orange-500 transition-colors" href="#">Pricing</a>
+          <a
+            className="text-orange-600 font-bold border-b-2 border-orange-600 pb-1 hover:text-orange-700 transition-colors"
+            href="#features"
+          >
+            Products
+          </a>
+          <a
+            className="text-stone-600 hover:text-orange-500 transition-colors"
+            href="#workflow"
+          >
+            Solutions
+          </a>
+          <a
+            className="text-stone-600 hover:text-orange-500 transition-colors"
+            href="#testimonials"
+          >
+            Resources
+          </a>
+          {/* Pricing — disabled during beta */}
+          <span className="flex items-center gap-1.5 cursor-default select-none group relative">
+            <span className="text-stone-400 font-medium">Pricing</span>
+            <span className="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-fixed text-[11px] font-black uppercase tracking-wider">
+              Beta
+            </span>
+            {/* Tooltip */}
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-stone-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-lg">
+              Free during beta 🎉
+            </span>
+          </span>
         </div>
 
         {/* CTA */}

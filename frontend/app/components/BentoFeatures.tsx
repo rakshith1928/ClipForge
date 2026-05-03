@@ -20,7 +20,7 @@ export const BentoFeatures = () => {
   }, []);
 
   return (
-    <section className="py-xl relative" ref={sectionRef}>
+    <section id="features" className="py-xl relative" ref={sectionRef}>
       <div className="max-w-7xl mx-auto px-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[300px]">
 

@@ -78,6 +78,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* Glassmorphism surface */
 .glass-surface {
   background: rgba(255, 255, 255, 0.85);
