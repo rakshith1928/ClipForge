@@ -143,80 +143,14 @@ async def transcribe_audio(audio_path: Path) -> dict:
 # ── Main route: POST /upload ─────────────────────────────────────────────────
 
 @router.post("/")
-def process_file_job(job_id: str, saved_path_str: str, original_filename: str, content_type: str, title: str | None):
-    db = SessionLocal()
-    job = db.query(Job).filter(Job.id == job_id).first()
-    if not job:
-        db.close()
-        return
-
-    saved_path = Path(saved_path_str)
-    audio_path = None
-
-    try:
-        job.status = "transcribing"
-        job.progress = 50
-        db.commit()
-
-        if content_type.startswith("video/"):
-            print(f"[ffmpeg] Extracting audio for Job {job_id}...")
-            audio_path = extract_audio(saved_path)
-        else:
-            audio_path = saved_path
-
-        job.progress = 70
-        db.commit()
-
-        print(f"[deepgram] Transcribing Job {job_id}...")
-        transcription = asyncio.run(transcribe_audio(audio_path))
-
-        job.progress = 90
-        db.commit()
-
-        episode = Episode(
-            id=job_id,
-            title=title or original_filename or "Untitled Podcast",
-            filename=original_filename,
-            transcript=transcription["transcript"],
-            words=transcription["words"],
-            word_count=len(transcription["words"]),
-            duration=transcription.get("duration", 0),
-        )
-        db.add(episode)
-
-        job.status = "done"
-        job.progress = 100
-        job.file_id = job_id
-        db.commit()
-        print(f"[db] Job & Episode saved: {job_id}")
-
-    except Exception as e:
-        db.rollback()
-        job.status = "error"
-        job.error = str(e)
-        db.commit()
-        print(f"[error] Job {job_id} failed: {e}")
-
-    finally:
-        paths_to_delete = []
-        if content_type.startswith("video/"):
-            paths_to_delete.append(saved_path)
-            if audio_path: paths_to_delete.append(audio_path)
-        else:
-            paths_to_delete.append(saved_path)
-            
-        _cleanup_files(*paths_to_delete)
-        db.close()
-
 async def upload_episode(
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     title: str = Form(None),
     db: Session = Depends(get_db)
 ):
     """
     Receives file, saves it to disk, creates a Job ticket, and passes audio extraction
-    and transcription to BackgroundTasks. Returns job ticket instantly.
+    and transcription to Celery workers. Returns job ticket instantly.
     """
     allowed_types = ["video/mp4", "video/quicktime", "audio/mpeg", "audio/wav", "audio/mp3"]
     if file.content_type not in allowed_types:
@@ -236,8 +170,9 @@ async def upload_episode(
     db.add(new_job)
     db.commit()
 
-    background_tasks.add_task(
-        process_file_job, 
+    # Import worker locally to avoid circular import
+    from worker import process_file_job
+    process_file_job.delay(
         job_id, 
         str(saved_path), 
         file.filename, 
@@ -273,98 +208,6 @@ def _download_with_ytdlp(url: str, out_path: str) -> None:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
 
-def process_url_job(job_id: str, url: str, title: str | None):
-    """
-    Background worker function executed by FastAPI's thread pool.
-    Updates the Job row in PostgreSQL at each step so the frontend can poll.
-    """
-    db = SessionLocal()
-    job = db.query(Job).filter(Job.id == job_id).first()
-    if not job:
-        db.close()
-        return
-
-    actual_path = None
-    audio_path = None
-
-    try:
-        # 1. Download
-        job.status = "uploading"
-        job.progress = 10
-        db.commit()
-
-        video_path = UPLOAD_DIR / f"{job_id}.mp4"
-        print(f"[yt-dlp] Downloading Job {job_id}: {url}")
-        
-        # Since this entire function runs in a background thread, yt-dlp won't block the web server
-        _download_with_ytdlp(url, str(video_path))
-
-        actual_path = video_path
-        if not actual_path.exists():
-            candidates = list(UPLOAD_DIR.glob(f"{job_id}.*"))
-            if not candidates:
-                raise RuntimeError("yt-dlp did not produce an output file.")
-            actual_path = candidates[0]
-
-        # 2. Extract Audio
-        job.status = "transcribing"
-        job.progress = 50
-        db.commit()
-
-        print(f"[ffmpeg] Extracting audio for Job {job_id}...")
-        audio_path = extract_audio(actual_path)
-
-        # 3. Transcribe
-        job.progress = 70
-        db.commit()
-
-        print(f"[deepgram] Transcribing Job {job_id}...")
-        # Background task is sync, but transcribe_audio is async. Run it via asyncio:
-        transcription = asyncio.run(transcribe_audio(audio_path))
-
-        # 4. Save to Database
-        job.progress = 90
-        db.commit()
-
-        episode = Episode(
-            id=job_id,
-            title=title or f"Video from {url[:60]}",
-            filename=str(actual_path.name),
-            transcript=transcription["transcript"],
-            words=transcription["words"],
-            word_count=len(transcription["words"]),
-            duration=transcription.get("duration", 0),
-        )
-        db.add(episode)
-        job.status = "done"
-        job.progress = 100
-        job.file_id = job_id
-        db.commit()
-        print(f"[db] Job & Episode saved: {job_id}")
-
-    except Exception as e:
-        db.rollback()
-        job.status = "error"
-        job.error = str(e)
-        db.commit()
-        print(f"[error] Job {job_id} failed: {e}")
-
-    finally:
-        # Guaranteed Cleanup — no more disk leaks!
-        paths_to_delete = []
-        if actual_path: paths_to_delete.append(actual_path)
-        if audio_path: paths_to_delete.append(audio_path)
-        _cleanup_files(*paths_to_delete)
-        
-        # Catch any stray temp files
-        for f in UPLOAD_DIR.glob(f"{job_id}*"):
-            try:
-                f.unlink()
-            except:
-                pass
-                
-        db.close()
-
 class UrlUploadRequest(BaseModel):
     url: str
     title: str | None = None
@@ -372,12 +215,11 @@ class UrlUploadRequest(BaseModel):
 @router.post("/url")
 async def start_upload_from_url(
     body: UrlUploadRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """
     Receives URL, fetches metadata to enforce limits, immediately creates a Job ticket in DB, 
-    passes work to BackgroundTasks, and returns the ticket ID.
+    passes work to Celery, and returns the ticket ID.
     """
     # 1. Fetch metadata to check duration limit (runs in threadpool to prevent blocking)
     try:
@@ -411,7 +253,9 @@ async def start_upload_from_url(
     db.add(new_job)
     db.commit()
 
-    background_tasks.add_task(process_url_job, job_id, body.url, body.title)
+    # Import worker locally to avoid circular import
+    from worker import process_url_job
+    process_url_job.delay(job_id, body.url, body.title)
 
     return JSONResponse({
         "job_id": job_id,

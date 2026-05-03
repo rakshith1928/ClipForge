@@ -10,3 +10,5 @@ passlib[bcrypt]
 python-jose[cryptography]
 httpx
 yt-dlp
+celery
+redis
