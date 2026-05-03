@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 
 export const Workflow = () => {
-  const sectionRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

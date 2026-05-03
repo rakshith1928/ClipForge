@@ -67,6 +67,19 @@ def extract_audio(video_path: Path) -> Path:
     return audio_path
 
 
+# ── Helper: clean up temp files after transcription ─────────────────────────
+
+def _cleanup_files(*paths: Path) -> None:
+    """Delete files from disk — called after transcription so we don't accumulate GBs."""
+    for p in paths:
+        try:
+            if p and p.exists():
+                p.unlink()
+                print(f"[cleanup] Deleted: {p}")
+        except Exception as e:
+            print(f"[cleanup] Warning: could not delete {p}: {e}")
+
+
 # ── Helper: send audio to Deepgram for transcription ────────────────────────
 
 async def transcribe_audio(audio_path: Path) -> dict:
@@ -175,6 +188,12 @@ async def upload_episode(
         db.commit()
         print(f"Episode saved to DB: {file_id}")
 
+        # Clean up raw files — transcript is now safely in the DB
+        if file.content_type.startswith("video/"):
+            _cleanup_files(saved_path, audio_path)  # delete both video + mp3
+        else:
+            _cleanup_files(saved_path)               # audio-only upload: delete mp3
+
         return JSONResponse({
             "success": True,
             "title": title or file.filename,
@@ -188,4 +207,118 @@ async def upload_episode(
 
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── URL-based ingestion: POST /upload/url ────────────────────────────────────
+
+import asyncio
+import yt_dlp
+from pydantic import BaseModel
+
+
+def _download_with_ytdlp(url: str, out_path: str) -> None:
+    """
+    Blocking download — runs in a thread pool so it doesn't stall the event loop.
+    Downloads the best available mp4 (or falls back to best audio) to out_path.
+    """
+    ydl_opts = {
+        "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "outtmpl": out_path,
+        "quiet": True,
+        "no_warnings": True,
+        "noplaylist": True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+
+class UrlUploadRequest(BaseModel):
+    url: str
+    title: str | None = None
+
+
+@router.post("/url")
+async def upload_from_url(
+    body: UrlUploadRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Full pipeline from a URL (YouTube, Vimeo, Twitch):
+    1. yt-dlp downloads the video to /uploads/<uuid>.mp4
+    2. FFmpeg extracts audio  (reuses extract_audio())
+    3. Deepgram transcribes  (reuses transcribe_audio())
+    4. Save Episode to DB    (same as file upload)
+    5. Return identical JSON response shape
+    """
+    file_id = str(uuid.uuid4())
+    video_path = UPLOAD_DIR / f"{file_id}.mp4"
+
+    try:
+        # 1. Download video in thread pool (yt-dlp is synchronous)
+        print(f"[yt-dlp] Downloading: {body.url}")
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None,
+            _download_with_ytdlp,
+            body.url,
+            str(video_path),
+        )
+
+        # yt-dlp may append the actual extension — find the downloaded file
+        actual_path = video_path
+        if not actual_path.exists():
+            # search for the uuid file regardless of extension
+            candidates = list(UPLOAD_DIR.glob(f"{file_id}.*"))
+            if not candidates:
+                raise RuntimeError("yt-dlp did not produce an output file.")
+            actual_path = candidates[0]
+
+        print(f"[yt-dlp] Downloaded to: {actual_path}")
+
+        # 2. Extract audio with FFmpeg
+        print("[ffmpeg] Extracting audio...")
+        audio_path = extract_audio(actual_path)
+
+        # 3. Transcribe with Deepgram
+        print("[deepgram] Transcribing...")
+        transcription = await transcribe_audio(audio_path)
+
+        # 4. Save Episode to DB
+        episode = Episode(
+            id=file_id,
+            title=body.title or f"Video from {body.url[:60]}",
+            filename=str(actual_path.name),
+            transcript=transcription["transcript"],
+            words=transcription["words"],
+            word_count=len(transcription["words"]),
+            duration=transcription.get("duration", 0),
+        )
+        db.add(episode)
+        db.commit()
+        print(f"[db] Episode saved: {file_id}")
+
+        # Clean up raw files — transcript is safely in DB, no need to keep GBs of video
+        _cleanup_files(actual_path, audio_path)
+
+        # 5. Return same shape as file upload
+        return JSONResponse({
+            "success": True,
+            "title": body.title or f"Video from {body.url[:60]}",
+            "file_id": file_id,
+            "transcript": transcription["transcript"],
+            "words": transcription["words"],
+            "paragraphs": transcription.get("paragraphs", []),
+            "word_count": len(transcription["words"]),
+            "duration": transcription.get("duration", 0),
+        })
+
+    except Exception as e:
+        db.rollback()
+        # Clean up any partial downloads
+        for f in UPLOAD_DIR.glob(f"{file_id}*"):
+            try:
+                f.unlink()
+            except Exception:
+                pass
         raise HTTPException(status_code=500, detail=str(e))

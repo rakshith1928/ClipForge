@@ -14,7 +14,25 @@ export const Navbar = () => {
     return () => clearTimeout(t);
   }, []);
 
-  if (isLoading) return null;
+  // During auth check: render a fixed-height skeleton so layout doesn't shift
+  if (isLoading) {
+    return (
+      <header className="bg-stone-50/80 backdrop-blur-[40px] top-0 sticky z-50 border-b border-orange-500/20 shadow-sm">
+        <nav className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
+          {/* Logo skeleton */}
+          <div className="h-7 w-32 bg-orange-100 rounded-lg animate-pulse" />
+          {/* Links skeleton */}
+          <div className="hidden md:flex items-center gap-8">
+            {[80, 72, 80, 64].map((w, i) => (
+              <div key={i} className="h-4 bg-stone-200 rounded animate-pulse" style={{ width: w }} />
+            ))}
+          </div>
+          {/* CTA skeleton */}
+          <div className="h-9 w-28 bg-orange-200 rounded-full animate-pulse" />
+        </nav>
+      </header>
+    );
+  }
 
   return (
     <header

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 export const BottomCTA = () => {
   const { isLoggedIn } = useAuth();
-  const sectionRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
