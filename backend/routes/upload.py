@@ -5,14 +5,14 @@ import os
 import uuid
 import subprocess
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse
 import aiofiles
 from deepgram import DeepgramClient, PrerecordedOptions
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
-from database import get_db, Episode
+from database import get_db, Episode, Job, SessionLocal
 
 load_dotenv()
 
@@ -232,62 +232,62 @@ def _download_with_ytdlp(url: str, out_path: str) -> None:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
 
-
-class UrlUploadRequest(BaseModel):
-    url: str
-    title: str | None = None
-
-
-@router.post("/url")
-async def upload_from_url(
-    body: UrlUploadRequest,
-    db: Session = Depends(get_db),
-):
+def process_url_job(job_id: str, url: str, title: str | None):
     """
-    Full pipeline from a URL (YouTube, Vimeo, Twitch):
-    1. yt-dlp downloads the video to /uploads/<uuid>.mp4
-    2. FFmpeg extracts audio  (reuses extract_audio())
-    3. Deepgram transcribes  (reuses transcribe_audio())
-    4. Save Episode to DB    (same as file upload)
-    5. Return identical JSON response shape
+    Background worker function executed by FastAPI's thread pool.
+    Updates the Job row in PostgreSQL at each step so the frontend can poll.
     """
-    file_id = str(uuid.uuid4())
-    video_path = UPLOAD_DIR / f"{file_id}.mp4"
+    db = SessionLocal()
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        db.close()
+        return
+
+    actual_path = None
+    audio_path = None
 
     try:
-        # 1. Download video in thread pool (yt-dlp is synchronous)
-        print(f"[yt-dlp] Downloading: {body.url}")
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None,
-            _download_with_ytdlp,
-            body.url,
-            str(video_path),
-        )
+        # 1. Download
+        job.status = "uploading"
+        job.progress = 10
+        db.commit()
 
-        # yt-dlp may append the actual extension — find the downloaded file
+        video_path = UPLOAD_DIR / f"{job_id}.mp4"
+        print(f"[yt-dlp] Downloading Job {job_id}: {url}")
+        
+        # Since this entire function runs in a background thread, yt-dlp won't block the web server
+        _download_with_ytdlp(url, str(video_path))
+
         actual_path = video_path
         if not actual_path.exists():
-            # search for the uuid file regardless of extension
-            candidates = list(UPLOAD_DIR.glob(f"{file_id}.*"))
+            candidates = list(UPLOAD_DIR.glob(f"{job_id}.*"))
             if not candidates:
                 raise RuntimeError("yt-dlp did not produce an output file.")
             actual_path = candidates[0]
 
-        print(f"[yt-dlp] Downloaded to: {actual_path}")
+        # 2. Extract Audio
+        job.status = "transcribing"
+        job.progress = 50
+        db.commit()
 
-        # 2. Extract audio with FFmpeg
-        print("[ffmpeg] Extracting audio...")
+        print(f"[ffmpeg] Extracting audio for Job {job_id}...")
         audio_path = extract_audio(actual_path)
 
-        # 3. Transcribe with Deepgram
-        print("[deepgram] Transcribing...")
-        transcription = await transcribe_audio(audio_path)
+        # 3. Transcribe
+        job.progress = 70
+        db.commit()
 
-        # 4. Save Episode to DB
+        print(f"[deepgram] Transcribing Job {job_id}...")
+        # Background task is sync, but transcribe_audio is async. Run it via asyncio:
+        transcription = asyncio.run(transcribe_audio(audio_path))
+
+        # 4. Save to Database
+        job.progress = 90
+        db.commit()
+
         episode = Episode(
-            id=file_id,
-            title=body.title or f"Video from {body.url[:60]}",
+            id=job_id,
+            title=title or f"Video from {url[:60]}",
             filename=str(actual_path.name),
             transcript=transcription["transcript"],
             words=transcription["words"],
@@ -295,30 +295,91 @@ async def upload_from_url(
             duration=transcription.get("duration", 0),
         )
         db.add(episode)
+        job.status = "done"
+        job.progress = 100
+        job.file_id = job_id
         db.commit()
-        print(f"[db] Episode saved: {file_id}")
-
-        # Clean up raw files — transcript is safely in DB, no need to keep GBs of video
-        _cleanup_files(actual_path, audio_path)
-
-        # 5. Return same shape as file upload
-        return JSONResponse({
-            "success": True,
-            "title": body.title or f"Video from {body.url[:60]}",
-            "file_id": file_id,
-            "transcript": transcription["transcript"],
-            "words": transcription["words"],
-            "paragraphs": transcription.get("paragraphs", []),
-            "word_count": len(transcription["words"]),
-            "duration": transcription.get("duration", 0),
-        })
+        print(f"[db] Job & Episode saved: {job_id}")
 
     except Exception as e:
         db.rollback()
-        # Clean up any partial downloads
-        for f in UPLOAD_DIR.glob(f"{file_id}*"):
+        job.status = "error"
+        job.error = str(e)
+        db.commit()
+        print(f"[error] Job {job_id} failed: {e}")
+
+    finally:
+        # Guaranteed Cleanup — no more disk leaks!
+        paths_to_delete = []
+        if actual_path: paths_to_delete.append(actual_path)
+        if audio_path: paths_to_delete.append(audio_path)
+        _cleanup_files(*paths_to_delete)
+        
+        # Catch any stray temp files
+        for f in UPLOAD_DIR.glob(f"{job_id}*"):
             try:
                 f.unlink()
-            except Exception:
+            except:
                 pass
-        raise HTTPException(status_code=500, detail=str(e))
+                
+        db.close()
+
+class UrlUploadRequest(BaseModel):
+    url: str
+    title: str | None = None
+
+@router.post("/url")
+async def start_upload_from_url(
+    body: UrlUploadRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Receives URL, immediately creates a Job ticket in DB, passes work to BackgroundTasks,
+    and returns the ticket ID to the user in milliseconds.
+    """
+    job_id = str(uuid.uuid4())
+    
+    new_job = Job(
+        id=job_id,
+        url=body.url,
+        title=body.title,
+        status="queued",
+        progress=0
+    )
+    db.add(new_job)
+    db.commit()
+
+    background_tasks.add_task(process_url_job, job_id, body.url, body.title)
+
+    return JSONResponse({
+        "job_id": job_id,
+        "status": "queued"
+    })
+
+
+@router.get("/status/{job_id}")
+async def get_job_status(job_id: str, db: Session = Depends(get_db)):
+    """
+    Frontend polls this endpoint every 2 seconds to get real-time progress.
+    """
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    response = {
+        "job_id": job.id,
+        "status": job.status,
+        "progress": job.progress,
+    }
+
+    if job.status == "done":
+        # Fetch the Episode data so the frontend can display the success screen
+        ep = db.query(Episode).filter(Episode.id == job.file_id).first()
+        if ep:
+            response["transcript"] = ep.transcript
+            response["file_id"] = ep.id
+    elif job.status == "error":
+        response["error"] = job.error
+
+    return JSONResponse(response)

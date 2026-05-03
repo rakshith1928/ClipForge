@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { Loader2 } from "lucide-react";
@@ -22,49 +22,67 @@ function UploadPageInner() {
   const [fileId, setFileId] = useState("");
   const [error, setError] = useState("");
 
-  // ── URL mode: auto-start processing as soon as page loads ──────────────────
+  const hasFetched = useRef(false);
+
+  // ── URL mode: Queue the job and poll for status ──────────────────────────────
   const handleUrlProcess = useCallback(async (url: string) => {
     setStatus("uploading");
     setProgress(0);
     setError("");
     try {
+      // 1. Instantly get the ticket (job_id)
       const res = await fetch(`${API_BASE}/upload/url`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, title: "" }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: "Server error." }));
         throw new Error(err.detail || "Server error.");
       }
       const data = await res.json();
-      setProgress(100);
-      setStatus("done");
-      setTranscript(data.transcript);
-      setFileId(data.file_id);
+      const jobId = data.job_id;
+
+      // 2. Poll the status endpoint every 2 seconds
+      const interval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`${API_BASE}/upload/status/${jobId}`);
+          if (!statusRes.ok) return; // wait for next tick
+          
+          const statusData = await statusRes.json();
+          setProgress(statusData.progress || 0);
+
+          if (statusData.status === "done") {
+            clearInterval(interval);
+            setStatus("done");
+            setTranscript(statusData.transcript);
+            setFileId(statusData.file_id);
+          } else if (statusData.status === "error") {
+            clearInterval(interval);
+            setStatus("error");
+            setError(statusData.error || "Failed to process video.");
+          } else {
+            // queued, uploading, transcribing...
+            setStatus(statusData.status as Status);
+          }
+        } catch (e) {
+          // fetch error on polling, just ignore and retry next tick
+        }
+      }, 2000);
+
     } catch (e: unknown) {
       setStatus("error");
       setError(e instanceof Error ? e.message : "An unexpected error occurred.");
     }
   }, []);
 
-  // If URL param present → kick off immediately on mount
+  // If URL param present → kick off immediately on mount (Protected by useRef!)
   useEffect(() => {
-    if (prefilledUrl) {
+    if (prefilledUrl && !hasFetched.current) {
+      hasFetched.current = true;
       handleUrlProcess(prefilledUrl);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Fake progress creep for URL mode (server-side, can't track sub-steps)
-  useEffect(() => {
-    if (status !== "uploading" || !prefilledUrl) return;
-    let current = 0;
-    const interval = setInterval(() => {
-      current = Math.min(current + Math.random() * 3, 88);
-      setProgress(Math.round(current));
-    }, 900);
-    return () => clearInterval(interval);
-  }, [status, prefilledUrl]);
 
   const resetState = () => {
     setStatus("idle");

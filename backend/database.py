@@ -87,6 +87,21 @@ class ScheduledPost(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+# ── Background Jobs ───────────────────────────────────────────────────────────
+
+class Job(Base):
+    __tablename__ = "jobs"
+
+    id = Column(String, primary_key=True)
+    status = Column(String, default="queued")     # queued, downloading, transcribing, done, error
+    progress = Column(Integer, default=0)
+    file_id = Column(String, nullable=True)       # Set when done
+    error = Column(Text, nullable=True)
+    url = Column(String, nullable=True)
+    title = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 # ── DB Helpers ────────────────────────────────────────────────────────────────
 
 def init_db():
