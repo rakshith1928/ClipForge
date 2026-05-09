@@ -124,12 +124,10 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   const [statusText, setStatusText] = useState("Analyzing...");
 
   // Playback Store
-  const setAudioRef = usePlaybackStore(state => state.setAudioRef);
   const setCurrentTime = usePlaybackStore(state => state.setCurrentTime);
   const setTotalDuration = usePlaybackStore(state => state.setTotalDuration);
   const setIsPlaying = usePlaybackStore(state => state.setIsPlaying);
-  const seekTo = usePlaybackStore(state => state.seekTo);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // Filtering State
@@ -223,6 +221,23 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
     };
   }, [params.id]);
 
+  const togglePlay = async () => {
+    if (!audioRef.current) return;
+
+    if (audioRef.current.paused) {
+      await audioRef.current.play();
+      setIsPlaying(true);
+    } else {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const seekTo = (time: number) => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = time;
+  };
+
   const handleClipPlay = (startTime: number) => {
     seekTo(startTime);
     if (audioRef.current) {
@@ -312,10 +327,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
 
         {audioUrl && (
           <audio
-            ref={(node) => {
-              audioRef.current = node;
-              setAudioRef(node);
-            }}
+            ref={audioRef}
             src={audioUrl}
             onLoadedMetadata={(e) => setTotalDuration(e.currentTarget.duration)}
             onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
@@ -323,7 +335,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           />
         )}
 
-        <MediaPlaybackBar />
+        <MediaPlaybackBar onToggle={togglePlay} onSeek={seekTo} />
 
         <header className="max-w-[1280px] mx-auto px-8 mb-8 mt-6">
           <div className="flex items-center gap-3 mb-4">
@@ -409,6 +421,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
             <div className="h-[700px]">
               <TranscriptView
                 words={fullAnalysis?.episode?.words || []}
+                onSeek={seekTo}
               />
             </div>
           )}

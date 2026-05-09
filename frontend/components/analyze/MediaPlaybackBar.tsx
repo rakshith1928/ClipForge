@@ -2,6 +2,11 @@
 
 import { usePlaybackStore } from '../../store/usePlaybackStore';
 
+export interface MediaPlaybackBarProps {
+  onToggle: () => void;
+  onSeek: (time: number) => void;
+}
+
 function formatTime(seconds: number): string {
   if (!seconds || seconds <= 0) return "0:00";
   const m = Math.floor(seconds / 60);
@@ -9,8 +14,10 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function MediaPlaybackBar() {
-  const { currentTime, totalDuration: totalTime, isPlaying, togglePlay: onToggle, seekTo: onSeek } = usePlaybackStore();
+export function MediaPlaybackBar({ onToggle, onSeek }: MediaPlaybackBarProps) {
+  const currentTime = usePlaybackStore((s) => s.currentTime);
+  const totalTime = usePlaybackStore((s) => s.totalDuration);
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
 
   const progressPercent = totalTime > 0 ? (currentTime / totalTime) * 100 : 0;
 
@@ -44,7 +51,7 @@ export function MediaPlaybackBar() {
               onClick={handleProgressBarClick}
             >
               <div
-                className="absolute inset-y-0 left-0 premium-gradient-bg rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(171,53,0,0.5)]"
+                className="absolute inset-y-0 left-0 premium-gradient-bg rounded-full transition-[width] duration-100 shadow-[0_0_10px_rgba(171,53,0,0.5)]"
                 style={{ width: `${progressPercent}%` }}
               >
               </div>

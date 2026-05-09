@@ -13,10 +13,10 @@ export interface Word {
 
 export interface TranscriptViewProps {
   words: Word[];
+  onSeek: (time: number) => void;
 }
 
-const TranscriptWord = React.memo(({ w, searchQuery }: { w: Word, searchQuery: string }) => {
-  const seekTo = usePlaybackStore((state) => state.seekTo);
+const TranscriptWord = React.memo(({ w, searchQuery, onSeek }: { w: Word, searchQuery: string, onSeek: (time: number) => void }) => {
   const isActive = usePlaybackStore(
     (state) => state.currentTime >= w.start && state.currentTime <= w.end
   );
@@ -37,7 +37,7 @@ const TranscriptWord = React.memo(({ w, searchQuery }: { w: Word, searchQuery: s
   return (
     <span
       ref={spanRef}
-      onClick={() => seekTo(w.start)}
+      onClick={() => onSeek(w.start)}
       className={`
         cursor-pointer transition-all duration-200 inline-block mr-[0.3em] hover:text-primary hover:bg-primary/5 rounded px-1
         ${isActive ? "bg-primary/10 text-gradient font-bold speaker-highlight scale-[1.02] transform" : ""}
@@ -49,7 +49,7 @@ const TranscriptWord = React.memo(({ w, searchQuery }: { w: Word, searchQuery: s
   );
 });
 
-export function TranscriptView({ words }: TranscriptViewProps) {
+export function TranscriptView({ words, onSeek }: TranscriptViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -106,10 +106,10 @@ export function TranscriptView({ words }: TranscriptViewProps) {
               </span>
               <div className="h-[1px] flex-1 bg-[#e1bfb5]/30"></div>
             </div>
-            
+
             <div className="leading-relaxed text-[#261911] text-sm">
-              {group.words.map((w, wIdx) => (
-                <TranscriptWord key={wIdx} w={w} searchQuery={searchQuery} />
+              {group.words.map((w) => (
+                <TranscriptWord key={`${w.start}-${w.end}-${w.word}`} w={w} searchQuery={searchQuery} onSeek={onSeek} />
               ))}
             </div>
           </div>
