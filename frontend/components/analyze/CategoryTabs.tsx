@@ -22,28 +22,30 @@ export function CategoryTabs({
   return (
     <>
       {/* Horizontal Tabs */}
-      <div className="mb-8 overflow-hidden">
-        <div className="flex overflow-x-auto no-scrollbar px-6 gap-8 items-center border-b border-white/5">
+      <div className="sticky top-[64px] w-full z-40 glass-surface border-b border-[rgba(255,107,53,0.2)] px-8 mb-8">
+        <div className="max-w-[1280px] mx-auto flex items-center gap-6 py-3 overflow-x-auto no-scrollbar">
           {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => onTabChange(tab)}
-              className={`pb-4 relative font-semibold text-sm shrink-0 transition-colors ${activeTab === tab
-                  ? 'text-[#ba9eff] font-bold'
-                  : 'text-zinc-500 hover:text-white'
-                }`}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap shrink-0 ${
+                activeTab === tab
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-[#594139] hover:bg-[#ffe9e3]'
+              }`}
             >
               {tab}
-              {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#ba9eff] shadow-[0_0_10px_#ba9eff]"></div>
-              )}
             </button>
           ))}
+          <div className="h-4 w-[1px] bg-[#e1bfb5] mx-2 shrink-0"></div>
+          <button className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 text-primary font-bold text-xs uppercase tracking-widest hover:bg-primary/5 transition-all whitespace-nowrap shrink-0">
+            <span className="material-symbols-outlined text-[18px]">add</span> New Analysis
+          </button>
         </div>
       </div>
 
       {/* Context/Topic Filters */}
-      <div className="px-6 mb-8 overflow-hidden">
+      <div className="px-8 mb-8 max-w-[1280px] mx-auto overflow-hidden">
         <div className="flex overflow-x-auto no-scrollbar gap-2">
           {topics.map((topic, i) => {
             const isSelected = selectedTopic === topic;
@@ -51,9 +53,9 @@ export function CategoryTabs({
               <button
                 key={topic}
                 onClick={() => onTopicChange?.(isSelected ? null : topic)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${isSelected
-                    ? 'bg-[#ba9eff] text-[#18181b] border-[#ba9eff] shadow-[0_0_15px_rgba(186,158,255,0.3)]'
-                    : 'bg-[#1b1b1d] text-zinc-400 border-[rgba(73,69,81,0.15)] hover:text-white hover:border-zinc-600'
+                className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest whitespace-nowrap border transition-all ${isSelected
+                    ? 'premium-gradient-bg text-white border-transparent glow-shadow'
+                    : 'bg-[#fff8f5] text-[#594139] border-[rgba(255,107,53,0.2)] hover:bg-[#ffe9e3] hover:text-primary'
                   }`}
               >
                 {topic.startsWith("#") ? topic : `#${topic}`}

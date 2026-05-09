@@ -31,22 +31,14 @@ export function MediaPlaybackBar({
   };
 
   return (
-    <div className="px-6 -mt-2 mb-6">
+    <div className="px-8 max-w-[1280px] mx-auto -mt-2 mb-6">
       <div
-        className="rounded-2xl p-4 flex flex-col gap-3 relative"
-        style={{
-          background: "rgba(38, 37, 40, 0.4)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          border: "1px solid rgba(73, 69, 81, 0.15)",
-          boxShadow: "0 0 40px -10px rgba(186, 158, 255, 0.3)"
-        }}
+        className="rounded-3xl p-4 flex flex-col gap-3 relative glass-surface deep-boxed overflow-hidden"
       >
-        <div className="flex items-center gap-4 w-full">
+        <div className="flex items-center gap-4 w-full relative z-10">
           <button
             onClick={onToggle}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition-transform shrink-0"
-            style={{ background: "linear-gradient(135deg, #ba9eff 0%, #8455ef 100%)" }}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-90 transition-transform shrink-0 premium-gradient-bg glow-shadow"
           >
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
               {isPlaying ? 'pause' : 'play_arrow'}
@@ -56,18 +48,17 @@ export function MediaPlaybackBar({
           <div className="flex-1 flex flex-col gap-2">
             {/* Real Progress Bar */}
             <div
-              className="h-1.5 w-full bg-white/5 rounded-full cursor-pointer relative group overflow-hidden"
+              className="h-2 w-full bg-surface-container rounded-full cursor-pointer relative group overflow-hidden border border-[#e1bfb5]/50"
               onClick={handleProgressBarClick}
             >
               <div
-                className="absolute inset-y-0 left-0 bg-[#ba9eff] rounded-full transition-all duration-300"
+                className="absolute inset-y-0 left-0 premium-gradient-bg rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(171,53,0,0.5)]"
                 style={{ width: `${progressPercent}%` }}
               >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_10px_#ba9eff] opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-[10px] font-label font-bold tracking-widest text-[#cbc4d3] opacity-60">
+            <div className="flex justify-between items-center text-[10px] font-label font-bold tracking-widest text-[#594139] opacity-80">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(totalTime)}</span>
             </div>
@@ -75,11 +66,11 @@ export function MediaPlaybackBar({
         </div>
 
         {/* Decorative Pulsing Waveform */}
-        <div className="flex justify-center h-4 gap-[2px] opacity-20">
+        <div className="flex justify-center h-4 gap-[2px] opacity-[0.15]">
           {[40, 60, 80, 50, 90, 30, 70, 40, 60, 20, 50, 100, 40, 60, 80, 40, 60, 80].map((h, i) => (
             <div
               key={i}
-              className={`w-[2px] bg-[#ba9eff] rounded-[1px] mx-px ${isPlaying ? 'animate-pulse' : ''}`}
+              className={`w-[2px] bg-primary rounded-[1px] mx-px ${isPlaying ? 'animate-pulse' : ''}`}
               style={{ height: `${h}%`, animationDelay: `${i * 0.1}s` }}
             />
           ))}
