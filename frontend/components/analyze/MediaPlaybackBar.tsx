@@ -1,10 +1,6 @@
-export interface MediaPlaybackBarProps {
-  currentTime: number; // raw seconds
-  totalTime: number;   // raw seconds
-  isPlaying: boolean;
-  onToggle: () => void;
-  onSeek: (time: number) => void;
-}
+"use client";
+
+import { usePlaybackStore } from '../../store/usePlaybackStore';
 
 function formatTime(seconds: number): string {
   if (!seconds || seconds <= 0) return "0:00";
@@ -13,13 +9,9 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function MediaPlaybackBar({
-  currentTime,
-  totalTime,
-  isPlaying,
-  onToggle,
-  onSeek
-}: MediaPlaybackBarProps) {
+export function MediaPlaybackBar() {
+  const { currentTime, totalDuration: totalTime, isPlaying, togglePlay: onToggle, seekTo: onSeek } = usePlaybackStore();
+
   const progressPercent = totalTime > 0 ? (currentTime / totalTime) * 100 : 0;
 
   const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {

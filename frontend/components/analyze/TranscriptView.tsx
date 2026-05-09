@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
+import { usePlaybackStore } from "../../store/usePlaybackStore";
 
 export interface Word {
   word: string;
@@ -12,14 +13,45 @@ export interface Word {
 
 export interface TranscriptViewProps {
   words: Word[];
-  currentTime: number;
-  onSeek: (time: number) => void;
 }
 
-export function TranscriptView({ words, currentTime, onSeek }: TranscriptViewProps) {
+const TranscriptWord = React.memo(({ w, searchQuery }: { w: Word, searchQuery: string }) => {
+  const seekTo = usePlaybackStore((state) => state.seekTo);
+  const isActive = usePlaybackStore(
+    (state) => state.currentTime >= w.start && state.currentTime <= w.end
+  );
+  const isMatch = searchQuery && w.word.toLowerCase().includes(searchQuery.toLowerCase());
+
+  // Using a local ref to handle scrolling without re-rendering the whole transcript container
+  const spanRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (isActive && spanRef.current) {
+      spanRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [isActive]);
+
+  return (
+    <span
+      ref={spanRef}
+      onClick={() => seekTo(w.start)}
+      className={`
+        cursor-pointer transition-all duration-200 inline-block mr-[0.3em] hover:text-primary hover:bg-primary/5 rounded px-1
+        ${isActive ? "bg-primary/10 text-gradient font-bold speaker-highlight scale-[1.02] transform" : ""}
+        ${isMatch ? "bg-secondary-container/20 text-secondary font-bold" : ""}
+      `}
+    >
+      {w.word}
+    </span>
+  );
+});
+
+export function TranscriptView({ words }: TranscriptViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
-  const activeWordRef = useRef<HTMLSpanElement>(null);
 
   // Group words by speaker
   const groupedWords = React.useMemo(() => {
@@ -40,16 +72,6 @@ export function TranscriptView({ words, currentTime, onSeek }: TranscriptViewPro
     return groups;
   }, [words]);
 
-  // Auto-scrolling logic
-  useEffect(() => {
-    if (activeWordRef.current && containerRef.current) {
-      activeWordRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
-  }, [currentTime]);
-
   const speakerColors = [
     "text-[#fbbf24] bg-[rgba(251,191,36,0.1)]", // Amber
     "text-[#f87171] bg-[rgba(248,113,113,0.1)]", // Coral
@@ -59,9 +81,8 @@ export function TranscriptView({ words, currentTime, onSeek }: TranscriptViewPro
 
   return (
     <div className="flex flex-col h-full min-h-[500px] max-h-[800px] glass-surface deep-boxed rounded-3xl overflow-hidden transition-all duration-500 ease-out">
-
       {/* Search Header */}
-      <div className="p-4 border-b border-[rgba(255,107,53,0.2)] bg-[#fff8f5]/90 backdrop-blur-md sticky top-0 z-10 flex items-center gap-3">
+      <div className="p-4 border-b border-[#e1bfb5]/30 bg-[#fff8f5]/90 backdrop-blur-md sticky top-0 z-10 flex items-center gap-3">
         <Search className="w-5 h-5 text-[#8d7168]" />
         <input
           type="text"
@@ -83,34 +104,18 @@ export function TranscriptView({ words, currentTime, onSeek }: TranscriptViewPro
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded speaker-highlight uppercase tracking-widest ${speakerColors[group.speaker % speakerColors.length] || speakerColors[0]}`}>
                 SPEAKER {group.speaker}
               </span>
-              <div className="h-[1px] flex-1 bg-[#e1bfb5]"></div>
+              <div className="h-[1px] flex-1 bg-[#e1bfb5]/30"></div>
             </div>
             
             <div className="leading-relaxed text-[#261911] text-sm">
-              {group.words.map((w, wIdx) => {
-                const isActive = currentTime >= w.start && currentTime <= w.end;
-                const isMatch = searchQuery && w.word.toLowerCase().includes(searchQuery.toLowerCase());
-
-                return (
-                  <span
-                    key={wIdx}
-                    ref={isActive ? activeWordRef : null}
-                    onClick={() => onSeek(w.start)}
-                    className={`
-                      cursor-pointer transition-all duration-200 inline-block mr-[0.3em] hover:text-primary hover:bg-primary/5 rounded px-1
-                      ${isActive ? "bg-primary/10 text-gradient font-bold speaker-highlight scale-[1.02] transform" : ""}
-                      ${isMatch ? "bg-secondary-container/20 text-secondary font-bold" : ""}
-                    `}
-                  >
-                    {w.word}
-                  </span>
-                );
-              })}
+              {group.words.map((w, wIdx) => (
+                <TranscriptWord key={wIdx} w={w} searchQuery={searchQuery} />
+              ))}
             </div>
           </div>
         ))}
         {(!words || words.length === 0) && (
-          <div className="flex items-center justify-center h-40 text-zinc-500 text-sm">
+          <div className="flex items-center justify-center h-40 text-[#8d7168] text-sm">
             No transcript data available.
           </div>
         )}

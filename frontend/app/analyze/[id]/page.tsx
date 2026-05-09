@@ -9,6 +9,7 @@ import { CategoryTabs } from '../../../components/analyze/CategoryTabs';
 import { ClipCard } from '../../../components/analyze/ClipCard';
 import { TranscriptView } from '../../../components/analyze/TranscriptView';
 import type { Clip as FrontendClip } from '../../data/analyzeMockData';
+import { usePlaybackStore } from '../../../store/usePlaybackStore';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -122,11 +123,13 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   const [isSyncing, setIsSyncing] = useState(true);
   const [statusText, setStatusText] = useState("Analyzing...");
 
-  // Playback State
+  // Playback Store
+  const setAudioRef = usePlaybackStore(state => state.setAudioRef);
+  const setCurrentTime = usePlaybackStore(state => state.setCurrentTime);
+  const setTotalDuration = usePlaybackStore(state => state.setTotalDuration);
+  const setIsPlaying = usePlaybackStore(state => state.setIsPlaying);
+  const seekTo = usePlaybackStore(state => state.seekTo);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [totalDuration, setTotalDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // Filtering State
@@ -220,47 +223,15 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
     };
   }, [params.id]);
 
-  const handleTogglePlayback = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleSeek = (time: number) => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = time;
-    setCurrentTime(time);
-  };
-
   const handleClipPlay = (startTime: number) => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = startTime;
-    audioRef.current.play();
-    setIsPlaying(true);
+    seekTo(startTime);
+    if (audioRef.current) {
+      audioRef.current.play().catch(e => console.error("Play failed", e));
+      setIsPlaying(true);
+    }
     // Scroll to player if needed
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  // Handle audio events
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const onEnded = () => setIsPlaying(false);
-
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    audio.addEventListener('ended', onEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', onTimeUpdate);
-      audio.removeEventListener('ended', onEnded);
-    };
-  }, [audioUrl]);
 
   // Filtering Logic
   const filteredClips = useMemo(() => {
@@ -341,19 +312,18 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
 
         {audioUrl && (
           <audio
-            ref={audioRef}
+            ref={(node) => {
+              audioRef.current = node;
+              setAudioRef(node);
+            }}
             src={audioUrl}
             onLoadedMetadata={(e) => setTotalDuration(e.currentTarget.duration)}
+            onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+            onEnded={() => setIsPlaying(false)}
           />
         )}
 
-        <MediaPlaybackBar
-          currentTime={currentTime}
-          totalTime={totalDuration}
-          isPlaying={isPlaying}
-          onToggle={handleTogglePlayback}
-          onSeek={handleSeek}
-        />
+        <MediaPlaybackBar />
 
         <header className="max-w-[1280px] mx-auto px-8 mb-8 mt-6">
           <div className="flex items-center gap-3 mb-4">
@@ -439,8 +409,6 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
             <div className="h-[700px]">
               <TranscriptView
                 words={fullAnalysis?.episode?.words || []}
-                currentTime={currentTime}
-                onSeek={handleSeek}
               />
             </div>
           )}
