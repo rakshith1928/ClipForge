@@ -95,7 +95,7 @@ export function TranscriptView({ words, currentTime, onSeek }: TranscriptViewPro
                       onClick={() => onSeek(w.start)}
                       className={`
                         cursor-pointer transition-all duration-200 inline-block mr-[0.3em] hover:text-[#ba9eff] hover:bg-[#ba9eff]/10 rounded px-1
-                        ${isActive ? "text-transparent bg-clip-text bg-gradient-to-r from-[#ffffff] to-[#ba9eff] font-bold scale-[1.02] transform" : ""}
+                        ${isActive ? "text-transparent bg-clip-text bg-linear-to-r from-[#ffffff] to-[#ba9eff] font-bold scale-[1.02] transform" : ""}
                         ${isMatch ? "bg-[#ba9eff]/20 text-[#ba9eff] font-medium" : ""}
                       `}
                     >

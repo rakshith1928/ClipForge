@@ -74,7 +74,7 @@ export const Hero = () => {
     <section className="relative pt-24 pb-48 overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-0 left-0 w-full h-[800px] bg-gradient-to-b from-primary-fixed/30 to-background organic-wave" />
+        <div className="absolute top-0 left-0 w-full h-[800px] bg-linear-to-b from-primary-fixed/30 to-background organic-wave" />
         <div className="absolute top-40 -left-20 w-96 h-96 bg-secondary-container/40 rounded-full blur-[100px] opacity-60" />
         <div className="absolute top-20 -right-20 w-80 h-80 bg-primary-container/20 rounded-full blur-[100px] opacity-60" />
       </div>
@@ -170,12 +170,12 @@ export const Hero = () => {
           <div className="overflow-hidden w-full rounded-lg relative">
             <div className="clip-slider">
               {/* First set */}
-              <div className="grid grid-cols-4 gap-4 w-1/2 flex-shrink-0 pr-4">
+              <div className="grid grid-cols-4 gap-4 w-1/2 shrink-0 pr-4">
                 {clips.map((clip, i) => (
-                  <div key={i} className="aspect-[9/16] bg-stone-200 rounded-lg overflow-hidden relative shadow-lg border border-primary/5">
+                  <div key={i} className="aspect-9/16 bg-stone-200 rounded-lg overflow-hidden relative shadow-lg border border-primary/5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img alt={clip.title} className="w-full h-full object-cover" src={clip.src} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3 text-white">
                       <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{clip.label}</p>
                       <p className="text-xs font-semibold leading-tight">{clip.title}</p>
@@ -184,12 +184,12 @@ export const Hero = () => {
                 ))}
               </div>
               {/* Duplicate for seamless loop */}
-              <div className="grid grid-cols-4 gap-4 w-1/2 flex-shrink-0 pr-4">
+              <div className="grid grid-cols-4 gap-4 w-1/2 shrink-0 pr-4">
                 {clips.map((clip, i) => (
-                  <div key={i} className="aspect-[9/16] bg-stone-200 rounded-lg overflow-hidden relative shadow-lg border border-primary/5">
+                  <div key={i} className="aspect-9/16 bg-stone-200 rounded-lg overflow-hidden relative shadow-lg border border-primary/5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img alt={clip.title} className="w-full h-full object-cover" src={clip.src} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3 text-white">
                       <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{clip.label}</p>
                       <p className="text-xs font-semibold leading-tight">{clip.title}</p>

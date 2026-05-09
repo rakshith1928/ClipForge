@@ -59,7 +59,7 @@ export function ClipCard({ clip, onGenerate, onPlay, isGenerating = false, downl
             className="w-full h-full object-cover opacity-60"
             src={clip.imageUrl}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#18181b] to-transparent"></div>
+          <div className="absolute inset-0 bg-linear-to-t from-[#18181b] to-transparent"></div>
         </div>
       ) : null}
 

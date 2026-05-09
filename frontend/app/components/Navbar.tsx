@@ -17,7 +17,7 @@ export const Navbar = () => {
   // During auth check: render a fixed-height skeleton so layout doesn't shift
   if (isLoading) {
     return (
-      <header className="bg-stone-50/80 backdrop-blur-[40px] top-0 sticky z-50 border-b border-orange-500/20 shadow-sm">
+      <header className="bg-stone-50/80 backdrop-blur-2xl top-0 sticky z-50 border-b border-orange-500/20 shadow-sm">
         <nav className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
           {/* Logo skeleton */}
           <div className="h-7 w-32 bg-orange-100 rounded-lg animate-pulse" />
@@ -37,7 +37,7 @@ export const Navbar = () => {
   return (
     <header
       id="site-header"
-      className={`bg-stone-50/80 backdrop-blur-[40px] top-0 sticky z-50 border-b border-orange-500/20 shadow-sm transition-transform duration-700 ease-in-out ${visible ? 'translate-y-0' : '-translate-y-full'}`}
+      className={`bg-stone-50/80 backdrop-blur-2xl top-0 sticky z-50 border-b border-orange-500/20 shadow-sm transition-transform duration-700 ease-in-out ${visible ? 'translate-y-0' : '-translate-y-full'}`}
     >
       <nav className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
         {/* Logo */}
