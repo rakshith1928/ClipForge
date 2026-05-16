@@ -231,6 +231,15 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
     };
   }, [params.id]);
 
+  // Cleanup audio on unmount to prevent background playing
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
   const togglePlay = async () => {
     if (!audioRef.current) return;
 
