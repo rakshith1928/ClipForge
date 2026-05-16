@@ -10,6 +10,7 @@ import { ClipCard } from '../../../components/analyze/ClipCard';
 import { TranscriptView } from '../../../components/analyze/TranscriptView';
 import type { Clip as FrontendClip } from '../../data/analyzeMockData';
 import { usePlaybackStore } from '../../../store/usePlaybackStore';
+import toast from 'react-hot-toast';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -293,12 +294,13 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
       if (res.ok) {
         const data = await res.json();
         setClipDownloadUrls(prev => ({ ...prev, [clip.id]: data.download_url }));
+        toast.success("Clip generated successfully!");
       } else {
         const err = await res.json();
-        alert(`Generation failed: ${err.detail || "Unknown error"}`);
+        toast.error(`Generation failed: ${err.detail || "Unknown error"}`);
       }
     } catch (e) {
-      alert("Network error during clip generation.");
+      toast.error("Network error during clip generation.");
     } finally {
       setGeneratingClipId(null);
     }
@@ -320,12 +322,14 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
       if (res.ok) {
         const data = await res.json();
         setQuoteStates(prev => ({ ...prev, [index]: { loading: false, url: data.download_url } }));
+        toast.success("Quote Card generated successfully!");
       } else {
         setQuoteStates(prev => ({ ...prev, [index]: { loading: false, url: null } }));
-        alert("Failed to generate quote card.");
+        toast.error("Failed to generate quote card.");
       }
     } catch {
       setQuoteStates(prev => ({ ...prev, [index]: { loading: false, url: null } }));
+      toast.error("Network error. Failed to generate quote card.");
     }
   };
 
