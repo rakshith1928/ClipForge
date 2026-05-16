@@ -2,7 +2,16 @@
 
 import React, { useState } from 'react';
 
-const TABS = ["Clips", "Quotes", "Transcript", "Threads", "Knowledge", "Speakers"];
+export const TAB_NAMES = {
+  CLIPS: "Clips",
+  QUOTES: "Quotes",
+  TRANSCRIPT: "Transcript",
+  THREADS: "Threads",
+  KNOWLEDGE: "Knowledge",
+  SPEAKERS: "Speakers"
+} as const;
+
+export const TABS = Object.values(TAB_NAMES);
 
 export interface CategoryTabsProps {
   topics: string[];

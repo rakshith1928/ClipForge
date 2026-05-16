@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { AnalysisHeader } from '../../../components/analyze/AnalysisHeader';
 import { MediaPlaybackBar } from '../../../components/analyze/MediaPlaybackBar';
-import { CategoryTabs } from '../../../components/analyze/CategoryTabs';
+import { CategoryTabs, TAB_NAMES } from '../../../components/analyze/CategoryTabs';
 import { ClipCard } from '../../../components/analyze/ClipCard';
 import { TranscriptView } from '../../../components/analyze/TranscriptView';
 import type { Clip as FrontendClip } from '../../data/analyzeMockData';
@@ -120,7 +120,7 @@ function GenerateButton({
 }
 
 export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
-  const [activeTab, setActiveTab] = useState("Clips");
+  const [activeTab, setActiveTab] = useState<string>(TAB_NAMES.CLIPS);
   const [isSyncing, setIsSyncing] = useState(true);
   const [statusText, setStatusText] = useState("Analyzing...");
   const [error, setError] = useState<string | null>(null);
@@ -216,7 +216,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
       } catch (err) {
         console.error("Polling failed:", err);
         setError("Connection lost. Reconnecting...");
-        
+
         retryCount++;
         const nextDelay = Math.min(3000 * Math.pow(1.5, retryCount), 15000);
         timerId = setTimeout(pollAnalysis, nextDelay);
@@ -382,7 +382,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
         <main className="px-8 max-w-[1280px] mx-auto space-y-6">
 
           {/* ── CLIPS TAB ── */}
-          {activeTab === "Clips" && filteredClips.length > 0 && (
+          {activeTab === TAB_NAMES.CLIPS && filteredClips.length > 0 && (
             <>
               {filteredClips.map(clip => (
                 <ClipCard
@@ -397,7 +397,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
             </>
           )}
 
-          {activeTab === "Clips" && clips.length === 0 && isSyncing && (
+          {activeTab === TAB_NAMES.CLIPS && clips.length === 0 && isSyncing && (
             <div className="py-16 text-center">
               <div className="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
               <p className="text-[#594139] font-bold uppercase tracking-widest text-[10px]">Analyzing your podcast...</p>
@@ -406,7 +406,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           )}
 
           {/* ── QUOTES TAB ── */}
-          {activeTab === "Quotes" && filteredQuotes.length > 0 && (
+          {activeTab === TAB_NAMES.QUOTES && filteredQuotes.length > 0 && (
             <div className="space-y-4">
               {filteredQuotes.map((quote, i) => (
                 <div key={i} className="glass-surface deep-boxed rounded-3xl p-6 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500 ease-out">
@@ -439,7 +439,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           )}
 
           {/* ── TRANSCRIPT TAB ── */}
-          {activeTab === "Transcript" && (
+          {activeTab === TAB_NAMES.TRANSCRIPT && (
             <div className="h-[700px]">
               <TranscriptView
                 words={fullAnalysis?.episode?.words || []}
@@ -449,7 +449,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           )}
 
           {/* ── THREADS TAB ── */}
-          {activeTab === "Threads" && fullAnalysis && (
+          {activeTab === TAB_NAMES.THREADS && fullAnalysis && (
             <div className="space-y-6">
               {/* Twitter Thread */}
               {fullAnalysis.twitter_thread && fullAnalysis.twitter_thread.length > 0 && (
@@ -509,7 +509,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           )}
 
           {/* ── KNOWLEDGE TAB ── */}
-          {activeTab === "Knowledge" && fullAnalysis?.knowledge_extracted && (
+          {activeTab === TAB_NAMES.KNOWLEDGE && fullAnalysis?.knowledge_extracted && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 { label: "📚 Key Lessons", items: fullAnalysis.knowledge_extracted.key_lessons, color: "#ab3500", bg: "bg-primary/5" },
@@ -532,7 +532,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           )}
 
           {/* ── SPEAKERS TAB ── */}
-          {activeTab === "Speakers" && fullAnalysis?.speaker_highlights && (
+          {activeTab === TAB_NAMES.SPEAKERS && fullAnalysis?.speaker_highlights && (
             <div className="space-y-4">
               {fullAnalysis.speaker_highlights.map((s, i) => (
                 <div key={i} className="glass-surface deep-boxed rounded-3xl p-6">
