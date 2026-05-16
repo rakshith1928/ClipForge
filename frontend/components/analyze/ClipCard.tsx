@@ -50,7 +50,14 @@ export function ClipCard({ clip, onGenerate, onPlay, isGenerating = false, downl
           />
           <div className="absolute inset-0 bg-linear-to-t from-[#fff8f5] to-transparent"></div>
         </div>
-      ) : null}
+      ) : (
+        <div className="h-32 w-full rounded-xl mb-4 bg-primary/5 flex items-center justify-center border border-primary/10">
+          <div className="flex flex-col items-center opacity-40">
+            <span className="material-symbols-outlined text-4xl mb-1 text-primary">movie</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Preview Not Available</span>
+          </div>
+        </div>
+      )}
 
       <p className="text-[#594139] text-sm mb-6 leading-relaxed">
         {clip.summary}
