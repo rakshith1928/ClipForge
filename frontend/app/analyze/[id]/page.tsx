@@ -122,6 +122,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState("Clips");
   const [isSyncing, setIsSyncing] = useState(true);
   const [statusText, setStatusText] = useState("Analyzing...");
+  const [error, setError] = useState<string | null>(null);
 
   // Playback Store
   const setCurrentTime = usePlaybackStore(state => state.setCurrentTime);
@@ -150,14 +151,16 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   const [quoteStates, setQuoteStates] = useState<Record<number, { loading: boolean; url: string | null }>>({});
 
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
     let isCancelled = false;
+    let retryCount = 0;
+    let timerId: NodeJS.Timeout;
 
-    const fetchAnalysis = async () => {
+    const pollAnalysis = async () => {
       try {
         const res = await fetch(`${API_BASE}/analyze/${params.id}`);
 
         if (res.status === 404) {
+          timerId = setTimeout(pollAnalysis, 3000);
           return;
         }
 
@@ -205,19 +208,25 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
 
           setStatusText("Complete");
           setIsSyncing(false);
-          clearInterval(pollInterval);
+          setError(null);
+        } else {
+          throw new Error(`Server returned ${res.status}`);
         }
       } catch (err) {
-        console.log("Failed to fetch from backend:", err);
+        console.error("Polling failed:", err);
+        setError("Connection lost. Reconnecting...");
+        
+        retryCount++;
+        const nextDelay = Math.min(3000 * Math.pow(1.5, retryCount), 15000);
+        timerId = setTimeout(pollAnalysis, nextDelay);
       }
     };
 
-    fetchAnalysis();
-    pollInterval = setInterval(fetchAnalysis, 3000);
+    pollAnalysis();
 
     return () => {
       isCancelled = true;
-      clearInterval(pollInterval);
+      clearTimeout(timerId);
     };
   }, [params.id]);
 
@@ -323,7 +332,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   return (
     <ProtectedRoute>
       <div className="bg-background text-text-primary font-body-md selection:bg-primary/20 min-h-screen pb-32">
-        <AnalysisHeader statusText={statusText} isSyncing={isSyncing} />
+        <AnalysisHeader statusText={statusText} isSyncing={isSyncing} error={error} />
 
         {audioUrl && (
           <audio

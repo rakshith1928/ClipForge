@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation';
 export interface AnalysisHeaderProps {
   statusText?: string;
   isSyncing?: boolean;
+  error?: string | null;
 }
 
-export function AnalysisHeader({ statusText = "Live Syncing...", isSyncing = true }: AnalysisHeaderProps) {
+export function AnalysisHeader({ statusText = "Live Syncing...", isSyncing = true, error = null }: AnalysisHeaderProps) {
   const router = useRouter();
 
   return (
@@ -24,7 +25,9 @@ export function AnalysisHeader({ statusText = "Live Syncing...", isSyncing = tru
       </div>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-full border border-[#e1bfb5]/50">
-          {isSyncing ? (
+          {error ? (
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          ) : isSyncing ? (
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -32,8 +35,8 @@ export function AnalysisHeader({ statusText = "Live Syncing...", isSyncing = tru
           ) : (
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
           )}
-          <span className="font-label text-[10px] font-bold uppercase tracking-wider text-green-600">
-            {statusText}
+          <span className={`font-label text-[10px] font-bold uppercase tracking-wider ${error ? 'text-red-600' : 'text-green-600'}`}>
+            {error ? error : statusText}
           </span>
         </div>
         <button className="hover:opacity-80 transition-opacity active:scale-95 duration-200 text-[#594139]">
