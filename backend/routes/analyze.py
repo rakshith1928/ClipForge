@@ -1,26 +1,25 @@
 # backend/routes/analyze.py
 
-import os
 import json
+import os
 import uuid
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
-from groq import Groq
+
 from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import get_db, Episode, GeneratedContent
+from database import Episode, GeneratedContent, get_db
 
 load_dotenv()
 
 router = APIRouter(prefix="/analyze", tags=["analyze"])
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
 class AnalyzeRequest(BaseModel):
     file_id: str
-    transcript: str
-    words: list
+    transcript: str = ""
+    words: list = []
     episode_title: str = ""
 
 
@@ -54,16 +53,28 @@ def find_timestamp(words: list, target_text: str, search_from: float = 0) -> dic
 
 @router.post("/")
 async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db)):
-    if not body.transcript:
+    # Load the episode so we can fall back to its stored transcript/words
+    episode = db.query(Episode).filter(Episode.id == body.file_id).first()
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found. Upload it first.")
+
+    transcript = body.transcript or (episode.transcript or "")
+    words = body.words or (episode.words or [])
+
+    if not transcript:
         raise HTTPException(status_code=400, detail="Transcript is empty")
 
     if not os.getenv("GROQ_API_KEY"):
         raise HTTPException(status_code=500, detail="GROQ_API_KEY not set")
 
+    from groq import Groq
+
+    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
     prompt = f"""You are an expert podcast content strategist. Analyze this transcript deeply.
 
 TRANSCRIPT:
-{body.transcript}
+{transcript}
 
 Return ONLY a valid JSON object with this exact structure — no explanation, no markdown, just the JSON:
 
@@ -157,15 +168,15 @@ Rules:
         # Attach timestamps to quotes
         for quote in analysis.get("quotes", []):
             first_words = quote.get("first_words", quote["text"][:30])
-            timestamps = find_timestamp(body.words, first_words)
+            timestamps = find_timestamp(words, first_words)
             quote["start_time"] = timestamps["start"]
             quote["end_time"] = timestamps["end"]
             quote.pop("first_words", None)
 
         # Attach timestamps to clips
         for clip in analysis.get("clips", []):
-            start_ts = find_timestamp(body.words, clip.get("start_text", ""))
-            end_ts = find_timestamp(body.words, clip.get("end_text", ""), search_from=start_ts["start"])
+            start_ts = find_timestamp(words, clip.get("start_text", ""))
+            end_ts = find_timestamp(words, clip.get("end_text", ""), search_from=start_ts["start"])
             clip["start_time"] = start_ts["start"]
             clip["end_time"] = end_ts["end"] if end_ts["end"] > 0 else start_ts["start"] + 60
             clip.pop("start_text", None)
@@ -187,9 +198,9 @@ Rules:
                 id=body.file_id,
                 title=body.episode_title or "Untitled Podcast",
                 filename="",
-                transcript=body.transcript[:500],  # Store a preview
-                words=body.words,
-                word_count=len(body.words),
+                transcript=transcript[:500],  # Store a preview
+                words=words,
+                word_count=len(words),
                 episode_summary=analysis.get("episode_summary", ""),
                 main_themes=analysis.get("main_themes", []),
                 topics_discussed=analysis.get("topics_discussed", []),
@@ -204,7 +215,7 @@ Rules:
                 content_type="clip",
                 title=clip.get("title", f"Clip {i+1}"),
                 body=clip.get("summary", ""),
-                metadata={
+                content_metadata={
                     "viral_score": clip.get("viral_score", 0),
                     "start_time": clip.get("start_time", 0),
                     "end_time": clip.get("end_time", 0),
@@ -224,7 +235,7 @@ Rules:
                 content_type="quote",
                 title=quote.get("theme", f"Quote {i+1}"),
                 body=quote.get("text", ""),
-                metadata={
+                content_metadata={
                     "speaker": quote.get("speaker", "Unknown"),
                     "viral_score": quote.get("viral_score", 0),
                     "start_time": quote.get("start_time", 0),
@@ -242,7 +253,7 @@ Rules:
                 content_type="twitter_thread",
                 title="Twitter Thread",
                 body=json.dumps(analysis["twitter_thread"]),
-                metadata={},
+                content_metadata={},
             )
             db.add(content)
 
@@ -254,7 +265,7 @@ Rules:
                 content_type="linkedin",
                 title="LinkedIn Post",
                 body=analysis["linkedin_post"],
-                metadata={},
+                content_metadata={},
             )
             db.add(content)
 
@@ -266,7 +277,7 @@ Rules:
                 content_type="instagram",
                 title="Instagram Caption",
                 body=analysis["instagram_caption"],
-                metadata={},
+                content_metadata={},
             )
             db.add(content)
 
@@ -294,10 +305,10 @@ Rules:
         }
 
     except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"Invalid JSON from Groq: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Invalid JSON from Groq: {str(e)}") from e
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ── GET /analyze/{file_id} — Fetch saved analysis from DB ────────────────────
@@ -324,23 +335,23 @@ async def get_analysis(file_id: str, db: Session = Depends(get_db)):
             clips.append({
                 "title": c.title,
                 "summary": c.body,
-                "viral_score": c.metadata.get("viral_score", 0),
-                "start_time": c.metadata.get("start_time", 0),
-                "end_time": c.metadata.get("end_time", 0),
-                "hook_original": c.metadata.get("hook_original", ""),
-                "hook_rewritten": c.metadata.get("hook_rewritten", ""),
-                "clip_type": c.metadata.get("clip_type", ""),
-                "why_viral": c.metadata.get("why_viral", ""),
+                "viral_score":                 c.content_metadata.get("viral_score", 0),
+                "start_time":                 c.content_metadata.get("start_time", 0),
+                "end_time":                 c.content_metadata.get("end_time", 0),
+                "hook_original":                 c.content_metadata.get("hook_original", ""),
+                "hook_rewritten":                 c.content_metadata.get("hook_rewritten", ""),
+                "clip_type":                 c.content_metadata.get("clip_type", ""),
+                "why_viral":                 c.content_metadata.get("why_viral", ""),
             })
         elif c.content_type == "quote":
             quotes.append({
                 "text": c.body,
-                "speaker": c.metadata.get("speaker", "Unknown"),
+                "speaker":                 c.content_metadata.get("speaker", "Unknown"),
                 "theme": c.title,
-                "viral_score": c.metadata.get("viral_score", 0),
-                "start_time": c.metadata.get("start_time", 0),
-                "end_time": c.metadata.get("end_time", 0),
-                "why_viral": c.metadata.get("why_viral", ""),
+                "viral_score":                 c.content_metadata.get("viral_score", 0),
+                "start_time":                 c.content_metadata.get("start_time", 0),
+                "end_time":                 c.content_metadata.get("end_time", 0),
+                "why_viral":                 c.content_metadata.get("why_viral", ""),
             })
         elif c.content_type == "twitter_thread":
             try:

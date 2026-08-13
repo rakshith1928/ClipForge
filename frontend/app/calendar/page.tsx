@@ -137,9 +137,14 @@ export default function CalendarPage() {
       const payload = data.data?.episodes || [];
       setEpisodes(payload);
 
-      // Auto-select latest episode
-      if (payload.length > 0 && !selectedEpisode) {
-        setSelectedEpisode(payload[0].id);
+      // Auto-select: prefer ?episode= query param, else latest
+      const qsEpisode = new URLSearchParams(window.location.search).get("episode");
+      if (payload.length > 0) {
+        if (qsEpisode && payload.some((p: any) => p.id === qsEpisode)) {
+          setSelectedEpisode(qsEpisode);
+        } else if (!selectedEpisode) {
+          setSelectedEpisode(payload[0].id);
+        }
       }
     } catch (err) {
       console.error(err);

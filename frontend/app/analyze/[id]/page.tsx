@@ -123,6 +123,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState<string>(TAB_NAMES.CLIPS);
   const [isSyncing, setIsSyncing] = useState(true);
   const [statusText, setStatusText] = useState("Analyzing...");
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   // Playback Store
@@ -369,6 +370,15 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           <p className="text-[#594139] text-[18px] max-w-2xl leading-relaxed">
             {episodeMetadata.summary}
           </p>
+
+          <div className="mt-6">
+            <button
+              onClick={() => router.push(`/calendar?episode=${params.id}`)}
+              className="premium-gradient-bg glow-shadow text-white text-sm font-bold px-5 py-3 rounded-full transition-transform active:scale-95 inline-flex items-center gap-2"
+            >
+              🗓️ Plan 30-Day Schedule
+            </button>
+          </div>
         </header>
 
         <CategoryTabs

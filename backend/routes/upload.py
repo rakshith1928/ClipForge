@@ -1,18 +1,19 @@
 # backend/routes/upload.py
 # Handles receiving the uploaded file, saving it, extracting audio, and transcribing it
 
+import asyncio
 import os
-import uuid
 import subprocess
+import uuid
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
-from fastapi.responses import JSONResponse
-import aiofiles
-from deepgram import DeepgramClient, PrerecordedOptions
+
 from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import get_db, Episode, Job, SessionLocal
+from database import Episode, Job, get_db
 
 load_dotenv()
 
@@ -31,6 +32,8 @@ async def save_upload(file: UploadFile) -> Path:
     ext = Path(file.filename).suffix
     unique_name = f"{uuid.uuid4()}{ext}"
     file_path = UPLOAD_DIR / unique_name
+
+    import aiofiles
 
     async with aiofiles.open(file_path, "wb") as out:
         while chunk := await file.read(1024 * 1024):
@@ -86,6 +89,8 @@ async def transcribe_audio(audio_path: Path) -> dict:
     """Send audio to Deepgram and return transcript, words, paragraphs, duration."""
     if not DEEPGRAM_API_KEY:
         raise RuntimeError("DEEPGRAM_API_KEY not set in .env")
+
+    from deepgram import DeepgramClient, PrerecordedOptions
 
     client = DeepgramClient(DEEPGRAM_API_KEY)
 
@@ -188,16 +193,14 @@ async def upload_episode(
 
 # ── URL-based ingestion: POST /upload/url ────────────────────────────────────
 
-import asyncio
-import yt_dlp
-from pydantic import BaseModel
-
 
 def _download_with_ytdlp(url: str, out_path: str) -> None:
     """
     Blocking download — runs in a thread pool so it doesn't stall the event loop.
     Downloads the best available mp4 (or falls back to best audio) to out_path.
     """
+    import yt_dlp
+
     ydl_opts = {
         "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
         "outtmpl": out_path,
@@ -225,6 +228,10 @@ async def start_upload_from_url(
     try:
         loop = asyncio.get_event_loop()
         def fetch_info():
+            # Imported lazily (like _download_with_ytdlp) so the module stays
+            # importable when yt-dlp isn't installed.
+            import yt_dlp
+
             with yt_dlp.YoutubeDL({"quiet": True, "noplaylist": True, "extract_flat": True}) as ydl:
                 return ydl.extract_info(body.url, download=False)
         
@@ -240,7 +247,10 @@ async def start_upload_from_url(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid URL or failed to fetch video info.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid URL or failed to fetch video info: {e}",
+        ) from e
     job_id = str(uuid.uuid4())
     
     new_job = Job(

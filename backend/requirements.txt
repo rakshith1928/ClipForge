@@ -2,6 +2,7 @@ fastapi
 uvicorn
 python-multipart
 python-dotenv
+itsdangerous
 google-generativeai
 groq
 sqlalchemy
@@ -12,3 +13,8 @@ httpx
 yt-dlp
 celery
 redis
+deepgram
+aiofiles
+pillow
+authlib
+email-validator

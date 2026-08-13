@@ -1,5 +1,5 @@
-import urllib.request
 import os
+import urllib.request
 
 os.makedirs(".stitch/designs", exist_ok=True)
 
@@ -12,8 +12,9 @@ with urllib.request.urlopen(req) as response:
         
 png_url = "https://lh3.googleusercontent.com/aida/ADBb0ugwKZFmV5e60rQ9O2ePy1fsF-Vhjd_LtCvVTPItOTH_TqwD2HGzRBBrK_m9rieRsHi0PJ-SuG8kXH1W7O88aZbKfnKxf4xIb54_33tf4syli3zZjaE2tD24YUkCuaxtDZ8TnwrawMDz0E6_oobvOtFJEe9XQBgNmEtws1S-KqqipshUwGHMdw2n2yHBwcU5pmMi7OTFPBDE97ydYLqhSXOE2ofcwRYdpBQ03noaPEhi_C9-B34qQ4rkOreK=w2560"
 req2 = urllib.request.Request(png_url)
-with urllib.request.urlopen(req2) as response:
-    with open(".stitch/designs/TranscriptView.png", "wb") as f:
-        f.write(response.read())
+with urllib.request.urlopen(req2) as response, open(
+    ".stitch/designs/TranscriptView.png", "wb"
+) as f:
+    f.write(response.read())
 
 print("Downloaded successfully.")

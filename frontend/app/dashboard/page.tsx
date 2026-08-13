@@ -1,4 +1,3 @@
-// frontend/app/generate/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -14,7 +13,7 @@ type Episode = {
   status?: string;
 };
 
-export default function GeneratePage() {
+export default function DashboardPage() {
   const router = useRouter();
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,12 +41,15 @@ export default function GeneratePage() {
       <main className="bg-background text-text-primary font-body-md min-h-screen pb-20">
         <div className="max-w-[1280px] mx-auto px-8 py-10">
           <header className="mb-8">
-            <span className="px-3 py-1 bg-primary/10 rounded-full text-[10px] font-bold text-primary uppercase tracking-wider">Generate</span>
-            <h1 className="text-[40px] font-bold leading-[1.1] tracking-tight text-gradient mt-4">Create Clips &amp; Quote Cards</h1>
-            <p className="text-[#594139] text-[18px] max-w-2xl leading-relaxed mt-2">
-              Pick an episode to generate viral clips and shareable quote cards. Generation happens on the analysis page.
-            </p>
+            <span className="px-3 py-1 bg-primary/10 rounded-full text-[10px] font-bold text-primary uppercase tracking-wider">Dashboard</span>
+            <h1 className="text-[40px] font-bold leading-[1.1] tracking-tight text-gradient mt-4">Your Episodes</h1>
+            <p className="text-[#594139] text-[18px] max-w-2xl leading-relaxed mt-2">Manage and repurpose every podcast you have uploaded.</p>
           </header>
+
+          <div className="flex flex-wrap gap-3 mb-8">
+            <button onClick={() => router.push("/upload")} className="premium-gradient-bg glow-shadow text-white text-sm font-bold px-5 py-3 rounded-full active:scale-95 transition-transform">⬆️ Upload Episode</button>
+            <button onClick={() => router.push("/calendar")} className="bg-primary/10 text-primary border border-primary/20 text-sm font-bold px-5 py-3 rounded-full hover:bg-primary hover:text-white transition-colors">🗓️ Content Calendar</button>
+          </div>
 
           {loading && (
             <div className="py-16 text-center">
@@ -61,7 +63,7 @@ export default function GeneratePage() {
           {!loading && !error && episodes.length === 0 && (
             <div className="py-16 text-center glass-surface deep-boxed rounded-3xl">
               <p className="text-[#594139] font-bold">No episodes yet</p>
-              <button onClick={() => router.push("/upload")} className="mt-4 premium-gradient-bg glow-shadow text-white text-sm font-bold px-5 py-3 rounded-full">Upload an episode</button>
+              <button onClick={() => router.push("/upload")} className="mt-4 premium-gradient-bg glow-shadow text-white text-sm font-bold px-5 py-3 rounded-full">Upload your first episode</button>
             </div>
           )}
 
@@ -70,12 +72,11 @@ export default function GeneratePage() {
               <div key={ep.id} className="glass-surface deep-boxed rounded-3xl p-6 flex flex-col gap-4">
                 <h3 className="font-bold text-[#261911] text-lg line-clamp-2">{ep.title || "Untitled Episode"}</h3>
                 {ep.summary && <p className="text-[#8d7168] text-sm line-clamp-3">{ep.summary}</p>}
-                <button
-                  onClick={() => router.push(`/analyze/${ep.id}`)}
-                  className="mt-auto premium-gradient-bg glow-shadow text-white text-sm font-bold px-5 py-3 rounded-full active:scale-95 transition-transform"
-                >
-                  🎬 Generate Clips
-                </button>
+                <div className="flex flex-wrap gap-2 mt-auto">
+                  <button onClick={() => router.push(`/analyze/${ep.id}`)} className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-colors">🔍 Analyze</button>
+                  <button onClick={() => router.push(`/generate`)} className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-colors">🎬 Generate</button>
+                  <button onClick={() => router.push(`/calendar?episode=${ep.id}`)} className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-colors">🗓️ Plan</button>
+                </div>
               </div>
             ))}
           </div>
