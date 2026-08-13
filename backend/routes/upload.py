@@ -7,8 +7,6 @@ import subprocess
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse
-import aiofiles
-from deepgram import DeepgramClient, PrerecordedOptions
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
@@ -31,6 +29,8 @@ async def save_upload(file: UploadFile) -> Path:
     ext = Path(file.filename).suffix
     unique_name = f"{uuid.uuid4()}{ext}"
     file_path = UPLOAD_DIR / unique_name
+
+    import aiofiles
 
     async with aiofiles.open(file_path, "wb") as out:
         while chunk := await file.read(1024 * 1024):
@@ -86,6 +86,8 @@ async def transcribe_audio(audio_path: Path) -> dict:
     """Send audio to Deepgram and return transcript, words, paragraphs, duration."""
     if not DEEPGRAM_API_KEY:
         raise RuntimeError("DEEPGRAM_API_KEY not set in .env")
+
+    from deepgram import DeepgramClient, PrerecordedOptions
 
     client = DeepgramClient(DEEPGRAM_API_KEY)
 
@@ -189,7 +191,6 @@ async def upload_episode(
 # ── URL-based ingestion: POST /upload/url ────────────────────────────────────
 
 import asyncio
-import yt_dlp
 from pydantic import BaseModel
 
 
@@ -198,6 +199,8 @@ def _download_with_ytdlp(url: str, out_path: str) -> None:
     Blocking download — runs in a thread pool so it doesn't stall the event loop.
     Downloads the best available mp4 (or falls back to best audio) to out_path.
     """
+    import yt_dlp
+
     ydl_opts = {
         "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
         "outtmpl": out_path,

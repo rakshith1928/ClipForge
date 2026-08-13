@@ -10,7 +10,6 @@ import subprocess
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from PIL import Image, ImageDraw, ImageFont
 import textwrap
 from sqlalchemy.orm import Session
 
@@ -114,6 +113,8 @@ def generate_quote_card(
     """
     W, H = 1080, 1080
 
+    from PIL import Image, ImageDraw, ImageFont
+
     # Create base image
     img = Image.new("RGB", (W, H), color=bg_color)
     draw = ImageDraw.Draw(img)
@@ -210,7 +211,7 @@ async def create_clip(body: ClipRequest, db: Session = Depends(get_db)):
         title=body.title or f"Clip {clip_id}",
         body="",
         file_path=str(output_path),
-        metadata={
+                content_metadata={
             "start_time": body.start_time,
             "end_time": body.end_time,
             "duration": round(body.end_time - body.start_time, 1),
@@ -259,7 +260,7 @@ async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(get_db
         title=f"Quote Card — {body.speaker}" if body.speaker else "Quote Card",
         body=body.quote_text,
         file_path=str(output_path),
-        metadata={
+                content_metadata={
             "speaker": body.speaker,
             "theme": body.theme,
             "download_url": f"/files/{output_filename}",

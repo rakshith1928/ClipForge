@@ -65,7 +65,7 @@ class GeneratedContent(Base):
     content_type = Column(String)
     title = Column(String, nullable=True)
     body = Column(Text)
-    metadata = Column(JSON, default=dict)
+    content_metadata = Column("metadata", JSON, default=dict)
     file_path = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

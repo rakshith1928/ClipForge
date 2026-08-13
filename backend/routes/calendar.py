@@ -47,8 +47,17 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
     instagram = [c for c in content_items if c.content_type == "instagram"]
 
     # Sort by viral score — best content first
-    clips.sort(key=lambda x: x.metadata.get("viral_score", 0) if x.metadata else 0, reverse=True)
-    quotes.sort(key=lambda x: x.metadata.get("viral_score", 0) if x.metadata else 0, reverse=True)
+    clips.sort(key=lambda x: x.content_metadata.get("viral_score", 0) if x.content_metadata else 0, reverse=True)
+    quotes.sort(key=lambda x: x.content_metadata.get("viral_score", 0) if x.content_metadata else 0, reverse=True)
+
+    # Every platform branch falls back to `quotes`, so if there is no
+    # schedulable content at all (e.g. only clip_file/quote_card types
+    # were generated), indexing `x[0 % 0]` would raise ZeroDivisionError.
+    if not (clips or quotes or threads or linkedin or instagram):
+        raise HTTPException(
+            status_code=400,
+            detail="No schedulable content found for this episode.",
+        )
 
     LINKEDIN_DAYS = {0, 3}
     INSTAGRAM_DAYS = {0, 2, 4}

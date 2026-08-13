@@ -5,7 +5,6 @@ import json
 import uuid
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from groq import Groq
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
@@ -14,7 +13,6 @@ from database import get_db, Episode, GeneratedContent
 load_dotenv()
 
 router = APIRouter(prefix="/analyze", tags=["analyze"])
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
 class AnalyzeRequest(BaseModel):
@@ -67,6 +65,10 @@ async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db)
 
     if not os.getenv("GROQ_API_KEY"):
         raise HTTPException(status_code=500, detail="GROQ_API_KEY not set")
+
+    from groq import Groq
+
+    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
     prompt = f"""You are an expert podcast content strategist. Analyze this transcript deeply.
 
@@ -212,7 +214,7 @@ Rules:
                 content_type="clip",
                 title=clip.get("title", f"Clip {i+1}"),
                 body=clip.get("summary", ""),
-                metadata={
+                content_metadata={
                     "viral_score": clip.get("viral_score", 0),
                     "start_time": clip.get("start_time", 0),
                     "end_time": clip.get("end_time", 0),
@@ -232,7 +234,7 @@ Rules:
                 content_type="quote",
                 title=quote.get("theme", f"Quote {i+1}"),
                 body=quote.get("text", ""),
-                metadata={
+                content_metadata={
                     "speaker": quote.get("speaker", "Unknown"),
                     "viral_score": quote.get("viral_score", 0),
                     "start_time": quote.get("start_time", 0),
@@ -250,7 +252,7 @@ Rules:
                 content_type="twitter_thread",
                 title="Twitter Thread",
                 body=json.dumps(analysis["twitter_thread"]),
-                metadata={},
+                content_metadata={},
             )
             db.add(content)
 
@@ -262,7 +264,7 @@ Rules:
                 content_type="linkedin",
                 title="LinkedIn Post",
                 body=analysis["linkedin_post"],
-                metadata={},
+                content_metadata={},
             )
             db.add(content)
 
@@ -274,7 +276,7 @@ Rules:
                 content_type="instagram",
                 title="Instagram Caption",
                 body=analysis["instagram_caption"],
-                metadata={},
+                content_metadata={},
             )
             db.add(content)
 
@@ -332,23 +334,23 @@ async def get_analysis(file_id: str, db: Session = Depends(get_db)):
             clips.append({
                 "title": c.title,
                 "summary": c.body,
-                "viral_score": c.metadata.get("viral_score", 0),
-                "start_time": c.metadata.get("start_time", 0),
-                "end_time": c.metadata.get("end_time", 0),
-                "hook_original": c.metadata.get("hook_original", ""),
-                "hook_rewritten": c.metadata.get("hook_rewritten", ""),
-                "clip_type": c.metadata.get("clip_type", ""),
-                "why_viral": c.metadata.get("why_viral", ""),
+                "viral_score":                 c.content_metadata.get("viral_score", 0),
+                "start_time":                 c.content_metadata.get("start_time", 0),
+                "end_time":                 c.content_metadata.get("end_time", 0),
+                "hook_original":                 c.content_metadata.get("hook_original", ""),
+                "hook_rewritten":                 c.content_metadata.get("hook_rewritten", ""),
+                "clip_type":                 c.content_metadata.get("clip_type", ""),
+                "why_viral":                 c.content_metadata.get("why_viral", ""),
             })
         elif c.content_type == "quote":
             quotes.append({
                 "text": c.body,
-                "speaker": c.metadata.get("speaker", "Unknown"),
+                "speaker":                 c.content_metadata.get("speaker", "Unknown"),
                 "theme": c.title,
-                "viral_score": c.metadata.get("viral_score", 0),
-                "start_time": c.metadata.get("start_time", 0),
-                "end_time": c.metadata.get("end_time", 0),
-                "why_viral": c.metadata.get("why_viral", ""),
+                "viral_score":                 c.content_metadata.get("viral_score", 0),
+                "start_time":                 c.content_metadata.get("start_time", 0),
+                "end_time":                 c.content_metadata.get("end_time", 0),
+                "why_viral":                 c.content_metadata.get("why_viral", ""),
             })
         elif c.content_type == "twitter_thread":
             try:
