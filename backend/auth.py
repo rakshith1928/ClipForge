@@ -1,6 +1,7 @@
 # JWT creation, password hashing, and all auth endpoints
 
 import os
+import re
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
@@ -96,6 +97,12 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
 
+    @validator("email")
+    def email_format(cls, v):
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+            raise ValueError("Invalid email format")
+        return v.lower()
+
     @validator("password")
     def password_strength(cls, v):
         if len(v) < 8:
@@ -183,7 +190,16 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 
 @router.post("/refresh")
 def refresh_token(body: RefreshRequest, db: Session = Depends(get_db)):
-    user_id = decode_token(body.refresh_token)
+    # Decode and verify this is actually a refresh token (not an access token).
+    try:
+        payload = jwt.decode(body.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token") from None
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
