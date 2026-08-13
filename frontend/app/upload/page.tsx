@@ -24,6 +24,23 @@ function UploadPageInner() {
 
   const hasFetched = useRef(false);
 
+  // ── Trigger AI analysis once the episode is transcribed ───────────────────
+  const analysisTriggered = useRef(false);
+
+  const triggerAnalysis = async (fid: string) => {
+    if (analysisTriggered.current) return;
+    analysisTriggered.current = true;
+    try {
+      await fetch(`${API_BASE}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_id: fid }),
+      });
+    } catch (e) {
+      console.error("Failed to trigger analysis", e);
+    }
+  };
+
   // ── URL mode: Queue the job and poll for status ──────────────────────────────
   const handleUrlProcess = useCallback(async (url: string) => {
     setStatus("uploading");
@@ -57,6 +74,7 @@ function UploadPageInner() {
             setStatus("done");
             setTranscript(statusData.transcript);
             setFileId(statusData.file_id);
+            triggerAnalysis(statusData.file_id);
           } else if (statusData.status === "error") {
             clearInterval(interval);
             setStatus("error");
@@ -139,6 +157,7 @@ function UploadPageInner() {
                 setStatus("done");
                 setTranscript(statusData.transcript);
                 setFileId(statusData.file_id);
+                triggerAnalysis(statusData.file_id);
               } else if (statusData.status === "error") {
                 clearInterval(interval);
                 setStatus("error");
