@@ -19,8 +19,8 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 class AnalyzeRequest(BaseModel):
     file_id: str
-    transcript: str
-    words: list
+    transcript: str = ""
+    words: list = []
     episode_title: str = ""
 
 
@@ -54,7 +54,15 @@ def find_timestamp(words: list, target_text: str, search_from: float = 0) -> dic
 
 @router.post("/")
 async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db)):
-    if not body.transcript:
+    # Load the episode so we can fall back to its stored transcript/words
+    episode = db.query(Episode).filter(Episode.id == body.file_id).first()
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found. Upload it first.")
+
+    transcript = body.transcript or (episode.transcript or "")
+    words = body.words or (episode.words or [])
+
+    if not transcript:
         raise HTTPException(status_code=400, detail="Transcript is empty")
 
     if not os.getenv("GROQ_API_KEY"):
@@ -63,7 +71,7 @@ async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db)
     prompt = f"""You are an expert podcast content strategist. Analyze this transcript deeply.
 
 TRANSCRIPT:
-{body.transcript}
+{transcript}
 
 Return ONLY a valid JSON object with this exact structure — no explanation, no markdown, just the JSON:
 
@@ -157,15 +165,15 @@ Rules:
         # Attach timestamps to quotes
         for quote in analysis.get("quotes", []):
             first_words = quote.get("first_words", quote["text"][:30])
-            timestamps = find_timestamp(body.words, first_words)
+            timestamps = find_timestamp(words, first_words)
             quote["start_time"] = timestamps["start"]
             quote["end_time"] = timestamps["end"]
             quote.pop("first_words", None)
 
         # Attach timestamps to clips
         for clip in analysis.get("clips", []):
-            start_ts = find_timestamp(body.words, clip.get("start_text", ""))
-            end_ts = find_timestamp(body.words, clip.get("end_text", ""), search_from=start_ts["start"])
+            start_ts = find_timestamp(words, clip.get("start_text", ""))
+            end_ts = find_timestamp(words, clip.get("end_text", ""), search_from=start_ts["start"])
             clip["start_time"] = start_ts["start"]
             clip["end_time"] = end_ts["end"] if end_ts["end"] > 0 else start_ts["start"] + 60
             clip.pop("start_text", None)
@@ -187,9 +195,9 @@ Rules:
                 id=body.file_id,
                 title=body.episode_title or "Untitled Podcast",
                 filename="",
-                transcript=body.transcript[:500],  # Store a preview
-                words=body.words,
-                word_count=len(body.words),
+                transcript=transcript[:500],  # Store a preview
+                words=words,
+                word_count=len(words),
                 episode_summary=analysis.get("episode_summary", ""),
                 main_themes=analysis.get("main_themes", []),
                 topics_discussed=analysis.get("topics_discussed", []),
