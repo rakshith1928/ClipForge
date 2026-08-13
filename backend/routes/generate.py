@@ -5,15 +5,16 @@
 # All output files go to the uploads/ folder and are served back as download links
 
 import os
-import uuid
 import subprocess
-from pathlib import Path
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
 import textwrap
+import uuid
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import get_db, GeneratedContent
+from database import GeneratedContent, get_db
 
 router = APIRouter(prefix="/generate", tags=["generate"])
 
@@ -137,8 +138,8 @@ def generate_quote_card(
         font_large = ImageFont.truetype("arial.ttf", 58)
         font_medium = ImageFont.truetype("arial.ttf", 32)
         font_small = ImageFont.truetype("arial.ttf", 26)
-    except:
-        # Fallback to PIL default font
+    except (OSError, ValueError):
+        # Fallback to PIL default font (font file missing/unreadable)
         font_large = ImageFont.load_default()
         font_medium = ImageFont.load_default()
         font_small = ImageFont.load_default()
@@ -191,7 +192,7 @@ async def create_clip(body: ClipRequest, db: Session = Depends(get_db)):
     try:
         video_path = find_video_file(body.file_id)
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
     clip_id = str(uuid.uuid4())[:8]
     safe_title = body.title.replace(" ", "_")[:30] if body.title else "clip"
@@ -201,7 +202,7 @@ async def create_clip(body: ClipRequest, db: Session = Depends(get_db)):
     try:
         cut_clip(video_path, body.start_time, body.end_time, output_path)
     except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
     # Save to DB so we can track every generated clip
     content = GeneratedContent(
@@ -250,7 +251,7 @@ async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(get_db
             output_path=output_path,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
     # Save to DB so we can track every generated quote card
     content = GeneratedContent(

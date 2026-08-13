@@ -5,18 +5,17 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel, EmailStr, validator
-from sqlalchemy.orm import Session
-from passlib.context import CryptContext
+from authlib.integrations.starlette_client import OAuth
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-
-from database import get_db, User
-
+from passlib.context import CryptContext
+from pydantic import BaseModel, validator
+from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
-from authlib.integrations.starlette_client import OAuth
+
+from database import User, get_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -156,7 +155,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/login")
@@ -227,7 +226,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     try:
         token = await oauth.google.authorize_access_token(request)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"OAuth error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"OAuth error: {str(e)}") from e
         
     user_info = token.get('userinfo')
     if not user_info:

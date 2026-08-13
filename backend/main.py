@@ -1,14 +1,17 @@
 # backend/main.py
+import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
-from routes.upload import router as upload_router
-from routes.analyze import router as analyze_router
-from routes.generate import router as generate_router
-from routes.calendar import router as calendar_router
+from starlette.middleware.sessions import SessionMiddleware
+
 from database import init_db
-from pathlib import Path
+from routes.analyze import router as analyze_router
+from routes.calendar import router as calendar_router
+from routes.generate import router as generate_router
+from routes.upload import router as upload_router
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -26,7 +29,6 @@ app.add_middleware(
 )
 
 # Required by authlib for Google OAuth state handling
-import os
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "changeme_session_secret"))
 
 # Serve uploaded/generated files as static files

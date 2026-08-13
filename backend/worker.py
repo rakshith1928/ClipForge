@@ -2,14 +2,15 @@ import asyncio
 from pathlib import Path
 
 from celery_app import celery_app
-from database import SessionLocal, Job, Episode
+from database import Episode, Job, SessionLocal
 from routes.upload import (
-    extract_audio,
-    transcribe_audio,
+    UPLOAD_DIR,
     _cleanup_files,
     _download_with_ytdlp,
-    UPLOAD_DIR
+    extract_audio,
+    transcribe_audio,
 )
+
 
 @celery_app.task(bind=True)
 def process_file_job(self, job_id: str, saved_path_str: str, original_filename: str, content_type: str, title: str | None):

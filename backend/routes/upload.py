@@ -1,16 +1,19 @@
 # backend/routes/upload.py
 # Handles receiving the uploaded file, saving it, extracting audio, and transcribing it
 
+import asyncio
 import os
-import uuid
 import subprocess
+import uuid
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
-from fastapi.responses import JSONResponse
+
 from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import get_db, Episode, Job, SessionLocal
+from database import Episode, Job, get_db
 
 load_dotenv()
 
@@ -190,9 +193,6 @@ async def upload_episode(
 
 # ── URL-based ingestion: POST /upload/url ────────────────────────────────────
 
-import asyncio
-from pydantic import BaseModel
-
 
 def _download_with_ytdlp(url: str, out_path: str) -> None:
     """
@@ -228,6 +228,10 @@ async def start_upload_from_url(
     try:
         loop = asyncio.get_event_loop()
         def fetch_info():
+            # Imported lazily (like _download_with_ytdlp) so the module stays
+            # importable when yt-dlp isn't installed.
+            import yt_dlp
+
             with yt_dlp.YoutubeDL({"quiet": True, "noplaylist": True, "extract_flat": True}) as ydl:
                 return ydl.extract_info(body.url, download=False)
         
@@ -243,7 +247,10 @@ async def start_upload_from_url(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid URL or failed to fetch video info.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid URL or failed to fetch video info: {e}",
+        ) from e
     job_id = str(uuid.uuid4())
     
     new_job = Job(

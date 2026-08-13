@@ -1,11 +1,22 @@
 # backend/database.py
 
 import os
-from sqlalchemy import create_engine, Column, String, Float, Integer, Text, DateTime, JSON, Boolean, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
+
 from dotenv import load_dotenv
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    create_engine,
+)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
 
 load_dotenv()
 

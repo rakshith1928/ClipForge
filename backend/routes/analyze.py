@@ -1,14 +1,15 @@
 # backend/routes/analyze.py
 
-import os
 import json
+import os
 import uuid
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+
 from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import get_db, Episode, GeneratedContent
+from database import Episode, GeneratedContent, get_db
 
 load_dotenv()
 
@@ -304,10 +305,10 @@ Rules:
         }
 
     except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"Invalid JSON from Groq: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Invalid JSON from Groq: {str(e)}") from e
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ── GET /analyze/{file_id} — Fetch saved analysis from DB ────────────────────

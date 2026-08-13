@@ -17,3 +17,14 @@ See `.env.example`. At minimum you need:
 - `GROQ_API_KEY` — powers transcript analysis (see `routes/analyze.py`)
 - `DEEPGRAM_API_KEY` — powers transcription (see `routes/upload.py`)
 - `DATABASE_URL` and `REDIS_URL` — Postgres + Celery broker
+
+## Tests and lint
+
+```bash
+pip install -r requirements-dev.txt
+pytest        # runs against a throw-away SQLite file, no Postgres/Redis needed
+ruff check .
+```
+
+The suite creates a fresh temporary database per session (see `tests/conftest.py`)
+and clears the tables before each test, so runs are isolated and repeatable.

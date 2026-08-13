@@ -2,15 +2,16 @@
 # Handles saving episodes, generating the content calendar,
 # and returning scheduled posts to the frontend.
 
-import os
 import uuid
+from datetime import date, datetime, timedelta
 from typing import List
-from datetime import datetime, timedelta , date
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel , validator
-from sqlalchemy.orm import Session
-from database import get_db, Episode, GeneratedContent, ScheduledPost, init_db
+
 from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, validator
+from sqlalchemy.orm import Session
+
+from database import Episode, GeneratedContent, ScheduledPost, get_db
 
 load_dotenv()
 
@@ -59,6 +60,18 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
             detail="No schedulable content found for this episode.",
         )
 
+    # Ordered pool of every non-empty bucket. Used as a last-resort fallback so
+    # a branch never ends up indexing an empty list (ZeroDivisionError -> 500)
+    # when an episode only has one content type (e.g. clips but no quotes).
+    available = [bucket for bucket in (clips, quotes, threads, linkedin, instagram) if bucket]
+
+    def pick_list(*preferred):
+        """Return the first non-empty list among `preferred`, else any available one."""
+        for bucket in preferred:
+            if bucket:
+                return bucket
+        return available[0]
+
     LINKEDIN_DAYS = {0, 3}
     INSTAGRAM_DAYS = {0, 2, 4}
 
@@ -90,15 +103,15 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
             # ── Twitter — daily ──────────────────────────────────────────────
             # Twitter — daily distribution logic
             if day % 3 == 0:
-                content_list = clips if clips else quotes
+                content_list = pick_list(clips, quotes)
                 content = content_list[clip_idx % len(content_list)]
                 clip_idx += 1
             elif day % 3 == 1:
-                content_list = quotes if quotes else clips
+                content_list = pick_list(quotes, clips)
                 content = content_list[quote_idx % len(content_list)]
                 quote_idx += 1
             else:
-                content_list = threads if threads else quotes
+                content_list = pick_list(threads, quotes)
                 content = content_list[thread_idx % len(content_list)]
                 thread_idx += 1
 
@@ -117,7 +130,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
 
             # ── LinkedIn — Mon + Thu ─────────────────────────────────────────
             if weekday in LINKEDIN_DAYS:
-                content_list = linkedin if linkedin else quotes
+                content_list = pick_list(linkedin, quotes)
                 content = content_list[linkedin_idx % len(content_list)]
                 linkedin_idx += 1
                 post_time = scheduled_date.replace(hour=PLATFORM_HOURS["linkedin"], minute=0, second=0)
@@ -135,7 +148,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
 
             # ── Instagram — Mon/Wed/Fri ──────────────────────────────────────
             if weekday in INSTAGRAM_DAYS:
-                content_list = instagram if instagram else quotes
+                content_list = pick_list(instagram, quotes)
                 content = content_list[instagram_idx % len(content_list)]
                 instagram_idx += 1
                 post_time = scheduled_date.replace(hour=PLATFORM_HOURS["instagram"], minute=0, second=0)
@@ -165,7 +178,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 # ── Route: Get calendar for an episode ──────────────────────────────────────
 
