@@ -68,12 +68,10 @@ def process_file_job(self, job_id: str, saved_path_str: str, original_filename: 
 
     finally:
         paths_to_delete = []
-        if content_type.startswith("video/"):
-            paths_to_delete.append(saved_path)
-            if audio_path: paths_to_delete.append(audio_path)
-        else:
-            paths_to_delete.append(saved_path)
-            
+        # Keep the original upload so video clips can be cut later.
+        # Only delete the extracted temporary audio.
+        if audio_path and audio_path != saved_path:
+            paths_to_delete.append(audio_path)
         _cleanup_files(*paths_to_delete)
         db.close()
 
@@ -156,15 +154,9 @@ def process_url_job(self, job_id: str, url: str, title: str | None):
     finally:
         # Guaranteed Cleanup — no more disk leaks!
         paths_to_delete = []
-        if actual_path: paths_to_delete.append(actual_path)
-        if audio_path: paths_to_delete.append(audio_path)
+        # Keep the downloaded original so clips can be cut later.
+        # Only delete the extracted temporary audio (if any).
+        if audio_path and audio_path != actual_path:
+            paths_to_delete.append(audio_path)
         _cleanup_files(*paths_to_delete)
-        
-        # Catch any stray temp files
-        for f in UPLOAD_DIR.glob(f"{job_id}*"):
-            try:
-                f.unlink()
-            except:
-                pass
-                
         db.close()
