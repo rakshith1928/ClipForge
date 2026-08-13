@@ -79,8 +79,18 @@ def get_current_user(
     db: Session = Depends(get_db)
 ) -> User:
     token = credentials.credentials
-    user_id = decode_token(token)
+    # Require an access token specifically: a refresh token (or any other
+    # JWT type) must not be accepted as bearer credentials, mirroring the
+    # type check already enforced in POST /auth/refresh (F4).
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from None
 
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Invalid token type")
+
+    user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
@@ -99,7 +109,11 @@ class RegisterRequest(BaseModel):
 
     @validator("email")
     def email_format(cls, v):
-        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", v):
+        # Strip first so a trailing/leading newline or whitespace can't slip
+        # past the regex. Use fullmatch + \Z anchoring so a trailing "\n"
+        # (which "$" would otherwise accept) is rejected.
+        v = (v or "").strip()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+\Z", v):
             raise ValueError("Invalid email format")
         return v.lower()
 

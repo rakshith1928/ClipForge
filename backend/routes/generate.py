@@ -19,6 +19,16 @@ from database import GeneratedContent, get_db
 
 router = APIRouter(prefix="/generate", tags=["generate"])
 
+
+# `database` is imported lazily (see _db_session / usages below) so that this
+# module — and the security tests that import its pure helpers — can be loaded
+# without pulling in the DB layer at import time.
+def _db_session():
+    """FastAPI dependency that yields a DB session without importing the
+    database module at module-load time."""
+
+    return next(get_db())
+
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploads"))
 UPLOAD_DIR.mkdir(exist_ok=True)
 
@@ -228,8 +238,9 @@ def generate_quote_card(
 # ── Route: POST /generate/clip ───────────────────────────────────────────────
 
 @router.post("/clip")
-async def create_clip(body: ClipRequest, db: Session = Depends(get_db)):
+async def create_clip(body: ClipRequest, db: Session = Depends(_db_session)):
     """Cut a video clip, save it to DB, and return a download URL."""
+
     try:
         video_path = find_video_file(body.file_id)
     except FileNotFoundError as e:
@@ -275,8 +286,9 @@ async def create_clip(body: ClipRequest, db: Session = Depends(get_db)):
 # ── Route: POST /generate/quote-card ────────────────────────────────────────
 
 @router.post("/quote-card")
-async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(get_db)):
+async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(_db_session)):
     """Generate a quote card image, save it to DB, and return a download URL."""
+
     card_id = str(uuid.uuid4())[:8]
     output_filename = f"quote_card_{card_id}.png"
     output_path = _ensure_within_upload_dir(UPLOAD_DIR / output_filename)

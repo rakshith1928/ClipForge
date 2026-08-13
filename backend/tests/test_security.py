@@ -3,11 +3,14 @@ import os
 # Use an isolated sqlite database so the suite runs without Postgres.
 os.environ["DATABASE_URL"] = "sqlite:////tmp/clipforge_smoke.db"
 
+import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
 from routes.generate import (
+    UPLOAD_DIR,
     QuoteCardRequest,
+    _ensure_within_upload_dir,
     find_video_file,
     sanitize_filename,
 )
@@ -57,3 +60,30 @@ def test_quote_text_rejects_overlong():
 def test_quote_text_accepts_valid():
     req = QuoteCardRequest(episode_id="e1", quote_text="A perfectly fine quote.")
     assert req.quote_text == "A perfectly fine quote."
+
+
+def test_ensure_within_upload_dir_accepts_inside():
+    # A path joined onto UPLOAD_DIR is returned (resolved) and stays inside.
+    candidate = UPLOAD_DIR / "clip_abc123_def.mp4"
+    resolved = _ensure_within_upload_dir(candidate)
+    assert resolved.parent == UPLOAD_DIR.resolve()
+
+
+def test_ensure_within_upload_dir_rejects_escape():
+    # A path that escapes UPLOAD_DIR must be rejected.
+    escape = UPLOAD_DIR.parent / ".." / "tmp" / "evil.mp4"
+    with pytest.raises(HTTPException):
+        _ensure_within_upload_dir(escape)
+
+
+def test_find_video_file_rejects_traversal_in_file_id():
+    # Up-front rejection of path separators and ".." prevents probing.
+    for bad in ("../../etc/passwd", "a/../b", "..\\evil", "a..b"):
+        with pytest.raises(HTTPException):
+            find_video_file(bad)
+
+
+def test_find_video_file_missing_is_not_found():
+    # A benign but non-existent id should raise FileNotFoundError, not escape.
+    with pytest.raises(FileNotFoundError):
+        find_video_file("00000000-0000-0000-0000-000000000000")

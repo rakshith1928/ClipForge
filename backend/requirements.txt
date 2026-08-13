@@ -5,7 +5,7 @@ python-dotenv
 itsdangerous
 google-generativeai
 groq
-sqlalchemy
+sqlalchemy<2
 psycopg2-binary
 passlib[bcrypt]
 python-jose[cryptography]

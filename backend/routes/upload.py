@@ -246,8 +246,6 @@ async def start_upload_from_url(
             
     except HTTPException:
         raise
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=400,
