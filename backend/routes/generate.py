@@ -218,8 +218,8 @@ def generate_quote_card(
         theme_text = f"#{theme.upper()}"
         draw.text((margin, H - 130), theme_text, fill=text_color + "80", font=font_small)
 
-    # ── PodClip watermark ────────────────────────────────────────────────────
-    draw.text((W - 180, H - 60), "made with PodClip", fill=text_color + "40", font=font_small)
+    # ── ClipForge watermark ────────────────────────────────────────────────────
+    draw.text((W - 180, H - 60), "made with ClipForge", fill=text_color + "40", font=font_small)
 
     # Save the image
     img.save(str(output_path), "PNG", quality=95)

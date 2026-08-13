@@ -35,7 +35,7 @@ export const workflowSteps = [
 
 export const testimonials = [
   {
-    quote: "PodClip reduced our editing time by 90%. We used to spend days finding clips, now it's done before my coffee is cold.",
+    quote: "ClipForge reduced our editing time by 90%. We used to spend days finding clips, now it's done before my coffee is cold.",
     author: "Alex Rivera",
     handle: "@alex_digital",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAvH3-pBpecf-FY3yoYaugV3h3x9H8YQkajTi16UVL3RjUtxVu_wbX_BZyq4FW18G-gVogHww4JreFlX6dh4TAdvDRnRPkVJrSMqoHoFHr-jY96qKNUF1JhYpBQ7EmFFn_zm7bPc1BTbNWUNFZuvu5wie3Ni047apXtby2ADfGYikcOjk8Wn2uHwfHXv57969HvZAzjN7qeaaCyZxShwZIWVMmzj4dE_derQL85RdN_PSUWcw-U4aP99j61-wjrU6KVwIvHworkJoDx",
