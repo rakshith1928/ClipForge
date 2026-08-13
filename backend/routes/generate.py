@@ -5,6 +5,7 @@
 # All output files go to the uploads/ folder and are served back as download links
 
 import os
+import re
 import subprocess
 import textwrap
 import uuid
@@ -42,24 +43,64 @@ class QuoteCardRequest(BaseModel):
     text_color: str = "#ffffff"
     accent_color: str = "#7c3aed"
 
+    @validator("quote_text")
+    def quote_text_not_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError("quote_text cannot be empty")
+        if len(v) > 600:
+            raise ValueError("quote_text must be 600 characters or fewer")
+        return v
+
+
+# ── Helper: sanitize user-supplied filenames ─────────────────────────────────
+
+def sanitize_filename(name: str, default: str, max_len: int = 50) -> str:
+    """
+    Strip any characters (slashes, dots, etc.) that could be used for path
+    traversal so the value can safely be joined onto UPLOAD_DIR.
+    """
+    if not name:
+        return default
+    cleaned = re.sub(r'[^A-Za-z0-9_\-]', '_', name)
+    return cleaned[:max_len] or default
+
+
+# ── Helper: ensure a resolved path stays inside UPLOAD_DIR ───────────────────
+
+def _ensure_within_upload_dir(path: Path) -> Path:
+    base = UPLOAD_DIR.resolve()
+    resolved = path.resolve()
+    if resolved != base and base not in resolved.parents:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid path: file must reside inside the upload directory",
+        )
+    return resolved
+
 
 # ── Helper: find the original uploaded video file ────────────────────────────
 
 def find_video_file(file_id: str) -> Path:
     """
     Look for the original video file by its UUID.
-    Tries common video extensions.
+    Tries common video extensions. Guards against path traversal.
     """
+    # Reject obviously malicious IDs up front.
+    if "/" in file_id or "\\" in file_id or ".." in file_id:
+        raise HTTPException(status_code=400, detail="Invalid file_id")
+
+    base = UPLOAD_DIR.resolve()
+
     for ext in [".mp4", ".mov", ".webm", ".avi", ".mkv"]:
-        path = UPLOAD_DIR / f"{file_id}{ext}"
-        if path.exists():
-            return path
+        candidate = (base / f"{file_id}{ext}").resolve()
+        if candidate.parent == base and candidate.exists():
+            return candidate
 
     # If no video found, check for audio
     for ext in [".mp3", ".wav", ".m4a"]:
-        path = UPLOAD_DIR / f"{file_id}{ext}"
-        if path.exists():
-            return path
+        candidate = (base / f"{file_id}{ext}").resolve()
+        if candidate.parent == base and candidate.exists():
+            return candidate
 
     raise FileNotFoundError(f"No file found for ID: {file_id}")
 
@@ -195,9 +236,9 @@ async def create_clip(body: ClipRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e)) from e
 
     clip_id = str(uuid.uuid4())[:8]
-    safe_title = body.title.replace(" ", "_")[:30] if body.title else "clip"
+    safe_title = sanitize_filename(body.title, "clip", max_len=30)
     output_filename = f"clip_{safe_title}_{clip_id}.mp4"
-    output_path = UPLOAD_DIR / output_filename
+    output_path = _ensure_within_upload_dir(UPLOAD_DIR / output_filename)
 
     try:
         cut_clip(video_path, body.start_time, body.end_time, output_path)
@@ -238,7 +279,7 @@ async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(get_db
     """Generate a quote card image, save it to DB, and return a download URL."""
     card_id = str(uuid.uuid4())[:8]
     output_filename = f"quote_card_{card_id}.png"
-    output_path = UPLOAD_DIR / output_filename
+    output_path = _ensure_within_upload_dir(UPLOAD_DIR / output_filename)
 
     try:
         generate_quote_card(
