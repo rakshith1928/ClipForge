@@ -21,15 +21,46 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuth = () => {
+  const clearAuth = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setIsLoggedIn(false);
+  };
+
+  const tryRefresh = async (refreshToken: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      localStorage.setItem("access_token", data.access_token);
+      if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+      setIsLoggedIn(true);
+      const userStr = localStorage.getItem("user");
+      setUser(userStr ? JSON.parse(userStr) : null);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const checkAuth = async () => {
     try {
       const token = localStorage.getItem("access_token");
+      const refreshToken = localStorage.getItem("refresh_token");
       const userStr = localStorage.getItem("user");
 
       if (token) {
@@ -38,32 +69,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const isExpired = payload.exp * 1000 < Date.now();
 
           if (isExpired) {
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
-            localStorage.removeItem("user");
-            setUser(null);
-            setIsLoggedIn(false);
+            if (refreshToken && (await tryRefresh(refreshToken))) {
+              return;
+            }
+            clearAuth();
           } else {
             setIsLoggedIn(true);
-            if (userStr) {
-              setUser(JSON.parse(userStr));
-            } else {
-              setUser(null);
-            }
+            setUser(userStr ? JSON.parse(userStr) : null);
           }
         } catch (e) {
           console.error("Invalid token format", e);
-          setIsLoggedIn(false);
-          setUser(null);
+          clearAuth();
         }
       } else {
-        setIsLoggedIn(false);
-        setUser(null);
+        clearAuth();
       }
     } catch (e) {
       console.error("Error checking auth state", e);
-      setUser(null);
-      setIsLoggedIn(false);
+      clearAuth();
     } finally {
       setIsLoading(false);
     }

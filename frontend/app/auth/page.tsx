@@ -11,6 +11,7 @@ function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [forgotMsg, setForgotMsg] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -210,10 +211,13 @@ function AuthForm() {
 
           {isLogin && (
             <div className="flex justify-end pt-1">
-              <button type="button" className="text-sm font-medium text-[#ba9eff] hover:text-[#ae8dff] transition-colors">
+              <button type="button" onClick={() => setForgotMsg("Password reset isn't available in beta yet. Email support@clipforge.app for help.")} className="text-sm font-medium text-[#ba9eff] hover:text-[#ae8dff] transition-colors">
                 Forgot password?
               </button>
             </div>
+          )}
+          {forgotMsg && (
+            <p className="text-[#ae8dff] text-xs mt-2 text-right">{forgotMsg}</p>
           )}
 
           <button
