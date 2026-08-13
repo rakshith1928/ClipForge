@@ -90,7 +90,7 @@ export const Navbar = () => {
                   Hi, {user.name.split(' ')[0]}
                 </span>
               )}
-              <Link href="/calendar" className="text-sm text-stone-600 hover:text-orange-500 transition-colors font-medium">
+              <Link href="/dashboard" className="text-sm text-stone-600 hover:text-orange-500 transition-colors font-medium">
                 Dashboard
               </Link>
               <button
