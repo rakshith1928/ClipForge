@@ -12,3 +12,8 @@ httpx
 yt-dlp
 celery
 redis
+deepgram
+aiofiles
+pillow
+authlib
+email-validator
