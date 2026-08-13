@@ -16,44 +16,6 @@ load_dotenv()
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
-
-class SaveEpisodeRequest(BaseModel):
-    file_id: str
-    title: str = ""
-    transcript: str
-    word_count: int = 0
-    episode_summary: str = ""
-    main_themes: List[str] = []
-    topics_discussed: List[str] = []
-
-    @validator("transcript")
-    def transcript_not_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError("Transcript cannot be empty")
-        return v
-
-    @validator("file_id")
-    def file_id_not_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError("file_id cannot be empty")
-        return v
-
-
-class SaveContentRequest(BaseModel):
-    episode_id: str
-    quotes: List[dict] = []
-    clips: List[dict] = []
-    twitter_thread: List[str] = []
-    linkedin_post: str = ""
-    instagram_caption: str = ""
-
-    @validator("episode_id")
-    def episode_id_not_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError("episode_id cannot be empty")
-        return v
-
-
 class ScheduleRequest(BaseModel):
     episode_id: str
     start_date: date
@@ -64,143 +26,6 @@ class ScheduleRequest(BaseModel):
         if not v or not v.strip():
             raise ValueError("episode_id cannot be empty")
         return v
-
-
-# ── Route: Save episode to database ─────────────────────────────────────────
-@router.post("/save-episode")
-def save_episode(body: SaveEpisodeRequest, db: Session = Depends(get_db)):
-    existing = db.query(Episode).filter(Episode.id == body.file_id).first()
-    if existing:
-        return {"success": True, "episode_id": existing.id, "message": "Already exists"}
-
-    try:
-        episode = Episode(
-            id=body.file_id,
-            title=body.title or f"Episode {body.file_id[:8]}",
-            filename=body.file_id,
-            transcript=body.transcript,
-            word_count=body.word_count,
-            episode_summary=body.episode_summary,
-            main_themes=body.main_themes,
-            topics_discussed=body.topics_discussed,
-        )
-        db.add(episode)
-        db.commit()
-        db.refresh(episode)
-        return {
-            "success": True, 
-            "data": {
-                "episode_id": episode.id,
-                "title": episode.title,
-                "created_at": episode.created_at.isoformat()
-            }
-        }
-
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ── Route: Save generated content ───────────────────────────────────────────
-
-@router.post("/save-content")
-def save_content(body: SaveContentRequest, db: Session = Depends(get_db)):
-    # Validate episode exists before saving anything
-    episode = db.query(Episode).filter(Episode.id == body.episode_id).first()
-    if not episode:
-        raise HTTPException(status_code=404, detail="Episode not found. Save episode first.")
-
-    try:
-        saved = []
-
-        # Save quotes
-        for quote in body.quotes:
-            if not isinstance(quote, dict):
-                continue
-            content = GeneratedContent(
-                id=str(uuid.uuid4()),
-                episode_id=body.episode_id,
-                content_type="quote",
-                title=quote.get("theme", "Quote"),
-                body=quote.get("text", ""),
-                metadata={
-                    "speaker": quote.get("speaker"),
-                    "viral_score": quote.get("viral_score"),
-                    "start_time": quote.get("start_time"),
-                    "end_time": quote.get("end_time"),
-                    "why_viral": quote.get("why_viral"),
-                }
-            )
-            db.add(content)
-            saved.append(content.id)
-
-        # Save clips
-        for clip in body.clips:
-            if not isinstance(clip, dict):
-                continue
-            content = GeneratedContent(
-                id=str(uuid.uuid4()),
-                episode_id=body.episode_id,
-                content_type="clip",
-                title=clip.get("title", "Clip"),
-                body=clip.get("summary", ""),
-                metadata={
-                    "clip_type": clip.get("clip_type"),
-                    "viral_score": clip.get("viral_score"),
-                    "start_time": clip.get("start_time"),
-                    "end_time": clip.get("end_time"),
-                    "hook_rewritten": clip.get("hook_rewritten"),
-                }
-            )
-            db.add(content)
-            saved.append(content.id)
-
-        # Save Twitter thread
-        if body.twitter_thread:
-            content = GeneratedContent(
-                id=str(uuid.uuid4()),
-                episode_id=body.episode_id,
-                content_type="twitter_thread",
-                title="Twitter Thread",
-                body="\n\n".join(body.twitter_thread),
-                metadata={"tweet_count": len(body.twitter_thread)}
-            )
-            db.add(content)
-            saved.append(content.id)
-
-        # Save LinkedIn post
-        if body.linkedin_post:
-            content = GeneratedContent(
-                id=str(uuid.uuid4()),
-                episode_id=body.episode_id,
-                content_type="linkedin",
-                title="LinkedIn Post",
-                body=body.linkedin_post,
-                metadata={}
-            )
-            db.add(content)
-            saved.append(content.id)
-
-        # Save Instagram caption
-        if body.instagram_caption:
-            content = GeneratedContent(
-                id=str(uuid.uuid4()),
-                episode_id=body.episode_id,
-                content_type="instagram",
-                title="Instagram Caption",
-                body=body.instagram_caption,
-                metadata={}
-            )
-            db.add(content)
-            saved.append(content.id)
-
-        db.commit()
-        return {"success": True, "data": {"saved_count": len(saved)}}
-
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/schedule")
 def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
@@ -333,7 +158,6 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-
 # ── Route: Get calendar for an episode ──────────────────────────────────────
 
 @router.get("/posts/{episode_id}")
@@ -360,7 +184,6 @@ def get_posts(episode_id: str, db: Session = Depends(get_db)):
         }
     }
 
-
 # ── Route: Get all episodes ──────────────────────────────────────────────────
 
 @router.get("/episodes")
@@ -383,7 +206,6 @@ def get_episodes(db: Session = Depends(get_db)):
             ]
         }
     }
-
 
 # ── Route: Update post status ────────────────────────────────────────────────
 
