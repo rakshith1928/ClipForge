@@ -13,7 +13,7 @@ from pathlib import Path
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-app = FastAPI(title="PodClip API", version="0.1.0")
+app = FastAPI(title="ClipForge API", version="0.1.0")
 
 # Create database tables on startup
 init_db()
@@ -40,4 +40,4 @@ app.include_router(calendar_router)
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "message": "PodClip API is running"}
+    return {"status": "ok", "message": "ClipForge API is running"}

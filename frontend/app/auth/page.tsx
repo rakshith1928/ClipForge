@@ -115,7 +115,7 @@ function AuthForm() {
           </h1>
           <p className="text-[#adaaad] text-sm font-medium">
             {isLogin
-              ? "Sign in to access your PodClip dashboard"
+              ? "Sign in to access your ClipForge dashboard"
               : "Start clipping your podcasts with AI today."}
           </p>
         </div>
