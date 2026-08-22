@@ -75,6 +75,7 @@ async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db)
     db.commit()
 
     if not os.getenv("GROQ_API_KEY"):
+        _mark_analysis_error(db, body.file_id)
         raise HTTPException(status_code=500, detail="GROQ_API_KEY not set")
 
     from groq import Groq

@@ -76,3 +76,16 @@ def test_post_failure_marks_episode_error(client, db_session, monkeypatch):
     # And the frontend can now see the terminal error state:
     got = client.get("/analyze/st-1")
     assert got.json()["analysis_status"] == "error"
+
+
+def test_missing_groq_key_marks_episode_error(client, db_session, monkeypatch):
+    _seed_episode(db_session)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+    resp = client.post("/analyze/", json={"file_id": "st-1"})
+    assert resp.status_code == 500
+
+    db_session.expire_all()
+    ep = db_session.query(Episode).filter(Episode.id == "st-1").first()
+    assert ep.analysis_status == "error"
+    assert client.get("/analyze/st-1").json()["analysis_status"] == "error"
