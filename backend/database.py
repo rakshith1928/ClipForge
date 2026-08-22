@@ -108,6 +108,7 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
     status = Column(String, default="queued")     # queued, downloading, transcribing, done, error
     progress = Column(Integer, default=0)
     file_id = Column(String, nullable=True)       # Set when done

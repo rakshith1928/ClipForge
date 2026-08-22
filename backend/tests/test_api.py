@@ -136,12 +136,12 @@ def test_update_post_status_roundtrip(client, db_session):
     assert bad.status_code == 400
 
 
-def test_job_status_unknown_returns_404(client):
-    r = client.get("/upload/status/does-not-exist")
+def test_job_status_unknown_returns_404(auth_client):
+    r = auth_client.get("/upload/status/does-not-exist")
     assert r.status_code == 404
 
 
-def test_upload_from_url_uses_lazily_imported_ytdlp(client, monkeypatch):
+def test_upload_from_url_uses_lazily_imported_ytdlp(auth_client, monkeypatch):
     """Regression test: `fetch_info` must import yt_dlp itself.
 
     yt_dlp is imported lazily inside the helpers, so referencing the (missing)
@@ -167,6 +167,6 @@ def test_upload_from_url_uses_lazily_imported_ytdlp(client, monkeypatch):
     fake_module.YoutubeDL = FakeYoutubeDL
     monkeypatch.setitem(sys.modules, "yt_dlp", fake_module)
 
-    r = client.post("/upload/url", json={"url": "https://example.com/video", "title": "t"})
+    r = auth_client.post("/upload/url", json={"url": "https://example.com/video", "title": "t"})
     assert r.status_code == 400
     assert "1 hour maximum duration limit" in r.json()["detail"]

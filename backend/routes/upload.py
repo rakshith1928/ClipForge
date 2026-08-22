@@ -13,7 +13,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import Episode, Job, get_db
+from auth import get_current_user
+from database import Episode, Job, User, get_db
 
 load_dotenv()
 
@@ -151,7 +152,8 @@ async def transcribe_audio(audio_path: Path) -> dict:
 async def upload_episode(
     file: UploadFile = File(...),
     title: str = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Receives file, saves it to disk, creates a Job ticket, and passes audio extraction
@@ -167,6 +169,7 @@ async def upload_episode(
 
     new_job = Job(
         id=job_id,
+        user_id=current_user.id,
         url=None,
         title=title or file.filename,
         status="uploading",
@@ -178,11 +181,12 @@ async def upload_episode(
     # Import worker locally to avoid circular import
     from worker import process_file_job
     process_file_job.delay(
-        job_id, 
-        str(saved_path), 
-        file.filename, 
-        file.content_type, 
-        title
+        job_id,
+        str(saved_path),
+        file.filename,
+        file.content_type,
+        title,
+        current_user.id,
     )
 
     return JSONResponse({
@@ -219,6 +223,7 @@ class UrlUploadRequest(BaseModel):
 async def start_upload_from_url(
     body: UrlUploadRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Receives URL, fetches metadata to enforce limits, immediately creates a Job ticket in DB, 
@@ -255,6 +260,7 @@ async def start_upload_from_url(
     
     new_job = Job(
         id=job_id,
+        user_id=current_user.id,
         url=body.url,
         title=body.title,
         status="queued",
@@ -265,7 +271,7 @@ async def start_upload_from_url(
 
     # Import worker locally to avoid circular import
     from worker import process_url_job
-    process_url_job.delay(job_id, body.url, body.title)
+    process_url_job.delay(job_id, body.url, body.title, current_user.id)
 
     return JSONResponse({
         "job_id": job_id,
@@ -274,11 +280,15 @@ async def start_upload_from_url(
 
 
 @router.get("/status/{job_id}")
-async def get_job_status(job_id: str, db: Session = Depends(get_db)):
+async def get_job_status(
+    job_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Frontend polls this endpoint every 2 seconds to get real-time progress.
     """
-    job = db.query(Job).filter(Job.id == job_id).first()
+    job = db.query(Job).filter(Job.id == job_id, Job.user_id == current_user.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 

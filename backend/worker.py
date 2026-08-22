@@ -13,7 +13,7 @@ from routes.upload import (
 
 
 @celery_app.task(bind=True)
-def process_file_job(self, job_id: str, saved_path_str: str, original_filename: str, content_type: str, title: str | None):
+def process_file_job(self, job_id: str, saved_path_str: str, original_filename: str, content_type: str, title: str | None, user_id: str | None = None):
     db = SessionLocal()
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
@@ -45,6 +45,7 @@ def process_file_job(self, job_id: str, saved_path_str: str, original_filename: 
 
         episode = Episode(
             id=job_id,
+            user_id=user_id,
             title=title or original_filename or "Untitled Podcast",
             filename=original_filename,
             storage_path=saved_path.name,
@@ -79,7 +80,7 @@ def process_file_job(self, job_id: str, saved_path_str: str, original_filename: 
 
 
 @celery_app.task(bind=True)
-def process_url_job(self, job_id: str, url: str, title: str | None):
+def process_url_job(self, job_id: str, url: str, title: str | None, user_id: str | None = None):
     """
     Background worker function executed by Celery.
     Updates the Job row in PostgreSQL at each step so the frontend can poll.
@@ -132,6 +133,7 @@ def process_url_job(self, job_id: str, url: str, title: str | None):
 
         episode = Episode(
             id=job_id,
+            user_id=user_id,
             title=title or f"Video from {url[:60]}",
             filename=str(actual_path.name),
             storage_path=str(actual_path.name),
