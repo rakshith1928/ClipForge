@@ -16,13 +16,14 @@ from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
+from config import get_secret
 from database import User, get_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
-SECRET_KEY = os.getenv("SECRET_KEY", "changeme")
+SECRET_KEY = get_secret("SECRET_KEY", dev_default="changeme")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
