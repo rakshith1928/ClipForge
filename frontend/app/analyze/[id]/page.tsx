@@ -155,65 +155,93 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     let isCancelled = false;
     let retryCount = 0;
+    let attempts = 0;
     let timerId: NodeJS.Timeout;
+    const MAX_ATTEMPTS = 60; // ~3 minutes at 3s intervals
 
     const pollAnalysis = async () => {
       try {
         const res = await fetch(`${API_BASE}/analyze/${params.id}`);
 
+        attempts++;
+
+        if (attempts > MAX_ATTEMPTS) {
+          setIsSyncing(false);
+          setStatusText("Timed out");
+          setError("Analysis is taking too long. Refresh this page in a minute.");
+          return;
+        }
+
         if (res.status === 404) {
+          retryCount++;
           timerId = setTimeout(pollAnalysis, 3000);
           return;
         }
 
-        if (res.ok) {
-          const data = await res.json();
-          if (isCancelled) return;
-
-          setFullAnalysis(data);
-
-          setEpisodeMetadata({
-            title: data.episode?.title || "Untitled Podcast",
-            summary: data.episode?.summary || data.episode_summary || ""
-          });
-
-          if (data.episode?.filename) {
-            setAudioUrl(`${API_BASE}/files/${data.episode.filename}`);
-          }
-
-          if (data.episode?.duration) {
-            setTotalDuration(data.episode.duration);
-          }
-
-          if (data.clips && data.clips.length > 0) {
-            const mappedClips: FrontendClip[] = data.clips.map((c: any, i: number) => ({
-              id: `clip-${i}`,
-              title: c.title || `Clip ${i + 1}`,
-              viralScore: c.viral_score || 0,
-              duration: `${formatTime(c.start_time)} - ${formatTime(c.end_time)}`,
-              startTime: c.start_time || 0,
-              endTime: c.end_time || 0,
-              summary: c.summary || "",
-              originalHook: c.hook_original || "",
-              aiHook: c.hook_rewritten || "",
-              clipType: c.clip_type || "insight",
-              whyViral: c.why_viral || ""
-            }));
-            setClips(mappedClips);
-          }
-
-          if (data.topics_discussed && data.topics_discussed.length > 0) {
-            setTopics(data.topics_discussed);
-          } else if (data.main_themes && data.main_themes.length > 0) {
-            setTopics(data.main_themes);
-          }
-
-          setStatusText("Complete");
-          setIsSyncing(false);
-          setError(null);
-        } else {
+        if (!res.ok) {
           throw new Error(`Server returned ${res.status}`);
         }
+
+        const data = await res.json();
+        if (isCancelled) return;
+
+        setFullAnalysis(data);
+
+        setEpisodeMetadata({
+          title: data.episode?.title || "Untitled Podcast",
+          summary: data.episode?.summary || data.episode_summary || ""
+        });
+
+        const mediaFile = data.episode?.storage_path || data.episode?.filename;
+        if (mediaFile) {
+          setAudioUrl(`${API_BASE}/files/${mediaFile}`);
+        }
+
+        if (data.episode?.duration) {
+          setTotalDuration(data.episode.duration);
+        }
+
+        if (data.topics_discussed && data.topics_discussed.length > 0) {
+          setTopics(data.topics_discussed);
+        } else if (data.main_themes && data.main_themes.length > 0) {
+          setTopics(data.main_themes);
+        }
+
+        // A7: only treat the analysis as finished when the server says so
+        const status = data.analysis_status || "pending";
+        if (status === "pending") {
+          setStatusText(`AI analysis running... (${attempts * 3}s)`);
+          timerId = setTimeout(pollAnalysis, 3000);
+          return;
+        }
+
+        if (status === "error") {
+          setIsSyncing(false);
+          setStatusText("Analysis failed");
+          setError("AI analysis failed. Go back to the upload page and retry.");
+          return;
+        }
+
+        if (data.clips && data.clips.length > 0) {
+          const mappedClips: FrontendClip[] = data.clips.map((c: any, i: number) => ({
+            id: `clip-${i}`,
+            title: c.title || `Clip ${i + 1}`,
+            viralScore: c.viral_score || 0,
+            duration: `${formatTime(c.start_time)} - ${formatTime(c.end_time)}`,
+            startTime: c.start_time || 0,
+            endTime: c.end_time || 0,
+            summary: c.summary || "",
+            originalHook: c.hook_original || "",
+            aiHook: c.hook_rewritten || "",
+            clipType: c.clip_type || "insight",
+            whyViral: c.why_viral || ""
+          }));
+          setClips(mappedClips);
+        }
+
+        setStatusText("Complete");
+        setIsSyncing(false);
+        setError(null);
       } catch (err) {
         console.error("Polling failed:", err);
         setError("Connection lost. Reconnecting...");
