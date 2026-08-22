@@ -11,11 +11,21 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, validator
 from sqlalchemy.orm import Session
 
-from database import Episode, GeneratedContent, ScheduledPost, get_db
+from auth import get_current_user
+from database import Episode, GeneratedContent, ScheduledPost, User, get_db
 
 load_dotenv()
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
+
+
+def _owned_episode_or_404(db: Session, episode_id: str, user: User) -> Episode:
+    episode = db.query(Episode).filter(
+        Episode.id == episode_id, Episode.user_id == user.id
+    ).first()
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found")
+    return episode
 
 class ScheduleRequest(BaseModel):
     episode_id: str
@@ -29,10 +39,9 @@ class ScheduleRequest(BaseModel):
         return v
 
 @router.post("/schedule")
-def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
-    episode = db.query(Episode).filter(Episode.id == body.episode_id).first()
-    if not episode:
-        raise HTTPException(status_code=404, detail="Episode not found in database. Save it first.")
+def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db),
+                     current_user: User = Depends(get_current_user)):
+    _owned_episode_or_404(db, body.episode_id, current_user)
 
     content_items = db.query(GeneratedContent).filter(
         GeneratedContent.episode_id == body.episode_id
@@ -119,6 +128,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
             db.add(ScheduledPost(
                 id=str(uuid.uuid4()),
                 episode_id=body.episode_id,
+                user_id=current_user.id,
                 content_id=content.id,
                 content_type=content.content_type,
                 content_body=content.body,
@@ -137,6 +147,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
                 db.add(ScheduledPost(
                     id=str(uuid.uuid4()),
                     episode_id=body.episode_id,
+                    user_id=current_user.id,
                     content_id=content.id,
                     content_type=content.content_type,
                     content_body=content.body,
@@ -155,6 +166,7 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
                 db.add(ScheduledPost(
                     id=str(uuid.uuid4()),
                     episode_id=body.episode_id,
+                    user_id=current_user.id,
                     content_id=content.id,
                     content_type=content.content_type,
                     content_body=content.body,
@@ -183,8 +195,10 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db)):
 # ── Route: Get calendar for an episode ──────────────────────────────────────
 
 @router.get("/posts/{episode_id}")
-def get_posts(episode_id: str, db: Session = Depends(get_db)):
+def get_posts(episode_id: str, db: Session = Depends(get_db),
+              current_user: User = Depends(get_current_user)):
     """Return all scheduled posts for an episode, ordered by date."""
+    _owned_episode_or_404(db, episode_id, current_user)
     posts = db.query(ScheduledPost).filter(
         ScheduledPost.episode_id == episode_id
     ).order_by(ScheduledPost.scheduled_date).all()
@@ -209,9 +223,12 @@ def get_posts(episode_id: str, db: Session = Depends(get_db)):
 # ── Route: Get all episodes ──────────────────────────────────────────────────
 
 @router.get("/episodes")
-def get_episodes(db: Session = Depends(get_db)):
+def get_episodes(db: Session = Depends(get_db),
+                 current_user: User = Depends(get_current_user)):
     """Return all saved episodes."""
-    episodes = db.query(Episode).order_by(Episode.created_at.desc()).limit(50).all()
+    episodes = db.query(Episode).filter(
+        Episode.user_id == current_user.id
+    ).order_by(Episode.created_at.desc()).limit(50).all()
     return {
         "success": True,
         "data": {
@@ -232,7 +249,8 @@ def get_episodes(db: Session = Depends(get_db)):
 # ── Route: Update post status ────────────────────────────────────────────────
 
 @router.patch("/posts/{post_id}/status")
-def update_post_status(post_id: str, status: str, db: Session = Depends(get_db)):
+def update_post_status(post_id: str, status: str, db: Session = Depends(get_db),
+                       current_user: User = Depends(get_current_user)):
     """Mark a post as posted or skipped."""
     if status not in ["scheduled", "posted", "skipped"]:
         raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
@@ -240,6 +258,7 @@ def update_post_status(post_id: str, status: str, db: Session = Depends(get_db))
     post = db.query(ScheduledPost).filter(ScheduledPost.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
+    _owned_episode_or_404(db, post.episode_id, current_user)
     post.status = status
     db.commit()
     return {"success": True, "data": {"post_id": post_id, "status": status}}

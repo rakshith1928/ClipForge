@@ -6,6 +6,8 @@ import pytest
 
 from database import Episode, GeneratedContent
 
+from conftest import AUTH_USER_ID
+
 # Content types that the calendar knows how to schedule.
 SCHEDULABLE_TYPES = ["clip", "quote", "twitter_thread", "linkedin", "instagram"]
 
@@ -13,7 +15,8 @@ SCHEDULABLE_TYPES = ["clip", "quote", "twitter_thread", "linkedin", "instagram"]
 def _seed_episode(db_session, content_types):
     """Create an episode plus one GeneratedContent row per given content type."""
     episode_id = f"ep-{uuid.uuid4().hex[:12]}"
-    db_session.add(Episode(id=episode_id, filename="x.mp4", transcript="t", words=[]))
+    db_session.add(Episode(id=episode_id, filename="x.mp4", transcript="t", words=[],
+                           user_id=AUTH_USER_ID))
     for content_type in content_types:
         db_session.add(
             GeneratedContent(
@@ -41,23 +44,23 @@ def test_unknown_analysis_returns_404(auth_client):
     assert r.status_code == 404
 
 
-def test_calendar_episodes_empty(client):
-    r = client.get("/calendar/episodes")
+def test_calendar_episodes_empty(auth_client):
+    r = auth_client.get("/calendar/episodes")
     assert r.status_code == 200
     assert r.json()["data"]["episodes"] == []
 
 
-def test_schedule_missing_episode_returns_404(client):
-    r = client.post(
+def test_schedule_missing_episode_returns_404(auth_client):
+    r = auth_client.post(
         "/calendar/schedule",
         json={"episode_id": "missing", "start_date": "2026-01-01"},
     )
     assert r.status_code == 404
 
 
-def test_schedule_no_content_returns_404(client, db_session):
+def test_schedule_no_content_returns_404(auth_client, db_session):
     episode_id = _seed_episode(db_session, [])
-    r = client.post(
+    r = auth_client.post(
         "/calendar/schedule",
         json={"episode_id": episode_id, "start_date": "2026-01-01"},
     )
@@ -65,11 +68,11 @@ def test_schedule_no_content_returns_404(client, db_session):
     assert "No content found" in r.json()["detail"]
 
 
-def test_schedule_no_schedulable_content_returns_400(client, db_session):
+def test_schedule_no_schedulable_content_returns_400(auth_client, db_session):
     # Regression test for the ZeroDivisionError raised when an episode has
     # only non-schedulable content types (e.g. clip_file / quote_card).
     episode_id = _seed_episode(db_session, ["clip_file", "quote_card"])
-    r = client.post(
+    r = auth_client.post(
         "/calendar/schedule",
         json={"episode_id": episode_id, "start_date": "2026-01-01"},
     )
@@ -78,7 +81,7 @@ def test_schedule_no_schedulable_content_returns_400(client, db_session):
 
 
 @pytest.mark.parametrize("content_type", SCHEDULABLE_TYPES)
-def test_schedule_single_content_type_succeeds(client, db_session, content_type):
+def test_schedule_single_content_type_succeeds(auth_client, db_session, content_type):
     """Regression test: a lone content type must not blow up with a 500.
 
     Each platform branch used to fall back to `quotes`, so an episode with only
@@ -86,53 +89,53 @@ def test_schedule_single_content_type_succeeds(client, db_session, content_type)
     """
     episode_id = _seed_episode(db_session, [content_type])
 
-    r = client.post(
+    r = auth_client.post(
         "/calendar/schedule",
         json={"episode_id": episode_id, "start_date": "2026-01-01"},
     )
     assert r.status_code == 200, r.text
     assert r.json()["data"]["scheduled_count"] > 30
 
-    posts = client.get(f"/calendar/posts/{episode_id}")
+    posts = auth_client.get(f"/calendar/posts/{episode_id}")
     assert posts.status_code == 200
     scheduled = posts.json()["data"]["posts"]
     assert len(scheduled) == r.json()["data"]["scheduled_count"]
     assert {p["content_type"] for p in scheduled} == {content_type}
 
 
-def test_schedule_mixed_content_and_reschedule(client, db_session):
+def test_schedule_mixed_content_and_reschedule(auth_client, db_session):
     """Scheduling twice must not duplicate posts (old ones are replaced)."""
     episode_id = _seed_episode(db_session, ["clip", "quote", "twitter_thread"])
     payload = {"episode_id": episode_id, "start_date": "2026-01-01"}
 
-    first = client.post("/calendar/schedule", json=payload)
+    first = auth_client.post("/calendar/schedule", json=payload)
     assert first.status_code == 200, first.text
 
-    second = client.post("/calendar/schedule", json=payload)
+    second = auth_client.post("/calendar/schedule", json=payload)
     assert second.status_code == 200, second.text
     assert second.json()["data"]["scheduled_count"] == first.json()["data"]["scheduled_count"]
 
-    posts = client.get(f"/calendar/posts/{episode_id}").json()["data"]["posts"]
+    posts = auth_client.get(f"/calendar/posts/{episode_id}").json()["data"]["posts"]
     assert len(posts) == first.json()["data"]["scheduled_count"]
 
 
-def test_update_post_status_roundtrip(client, db_session):
+def test_update_post_status_roundtrip(auth_client, db_session):
     episode_id = _seed_episode(db_session, ["clip"])
     assert (
-        client.post(
+        auth_client.post(
             "/calendar/schedule",
             json={"episode_id": episode_id, "start_date": "2026-01-01"},
         ).status_code
         == 200
     )
 
-    post_id = client.get(f"/calendar/posts/{episode_id}").json()["data"]["posts"][0]["id"]
+    post_id = auth_client.get(f"/calendar/posts/{episode_id}").json()["data"]["posts"][0]["id"]
 
-    ok = client.patch(f"/calendar/posts/{post_id}/status", params={"status": "posted"})
+    ok = auth_client.patch(f"/calendar/posts/{post_id}/status", params={"status": "posted"})
     assert ok.status_code == 200
     assert ok.json()["data"]["status"] == "posted"
 
-    bad = client.patch(f"/calendar/posts/{post_id}/status", params={"status": "nope"})
+    bad = auth_client.patch(f"/calendar/posts/{post_id}/status", params={"status": "nope"})
     assert bad.status_code == 400
 
 
