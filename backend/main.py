@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
+from config import get_secret
 from database import init_db
 from routes.analyze import router as analyze_router
 from routes.calendar import router as calendar_router
@@ -29,7 +30,10 @@ app.add_middleware(
 )
 
 # Required by authlib for Google OAuth state handling
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "changeme_session_secret"))
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=get_secret("SECRET_KEY", dev_default="changeme_session_secret"),
+)
 
 # Serve uploaded/generated files as static files
 # This means http://localhost:8000/files/filename.mp4 will work

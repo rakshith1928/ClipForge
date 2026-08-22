@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { Loader2 } from "lucide-react";
+import { pollJobStatus } from "../../lib/pollJobStatus";
 
 type Status = "idle" | "uploading" | "transcribing" | "done" | "error";
 
@@ -23,6 +24,12 @@ function UploadPageInner() {
   const [error, setError] = useState("");
 
   const hasFetched = useRef(false);
+  const cancelPollingRef = useRef<(() => void) | null>(null);
+
+  // B6: never leak polling intervals across navigation
+  useEffect(() => {
+    return () => cancelPollingRef.current?.();
+  }, []);
 
   // ── Trigger AI analysis once the episode is transcribed ───────────────────
   const analysisTriggered = useRef(false);
@@ -61,32 +68,22 @@ function UploadPageInner() {
       const jobId = data.job_id;
 
       // 2. Poll the status endpoint every 2 seconds
-      const interval = setInterval(async () => {
-        try {
-          const statusRes = await fetch(`${API_BASE}/upload/status/${jobId}`);
-          if (!statusRes.ok) return; // wait for next tick
-
-          const statusData = await statusRes.json();
-          setProgress(statusData.progress || 0);
-
-          if (statusData.status === "done") {
-            clearInterval(interval);
-            setStatus("done");
-            setTranscript(statusData.transcript);
-            setFileId(statusData.file_id);
-            triggerAnalysis(statusData.file_id);
-          } else if (statusData.status === "error") {
-            clearInterval(interval);
-            setStatus("error");
-            setError(statusData.error || "Failed to process video.");
-          } else {
-            // queued, uploading, transcribing...
-            setStatus(statusData.status as Status);
+      cancelPollingRef.current = pollJobStatus(API_BASE, jobId, (s) => {
+        setProgress(s.progress || 0);
+        if (s.status === "done") {
+          setStatus("done");
+          setTranscript(s.transcript || "");
+          if (s.file_id) {
+            setFileId(s.file_id);
+            triggerAnalysis(s.file_id);
           }
-        } catch (e) {
-          // fetch error on polling, just ignore and retry next tick
+        } else if (s.status === "error") {
+          setStatus("error");
+          setError(s.error || "Failed to process video.");
+        } else {
+          setStatus(s.status as Status);
         }
-      }, 2000);
+      });
 
     } catch (e: unknown) {
       setStatus("error");
@@ -144,31 +141,22 @@ function UploadPageInner() {
           const jobId = data.job_id;
 
           // The upload is finished, now start polling the background task
-          const interval = setInterval(async () => {
-            try {
-              const statusRes = await fetch(`${API_BASE}/upload/status/${jobId}`);
-              if (!statusRes.ok) return;
-
-              const statusData = await statusRes.json();
-
-              if (statusData.status === "done") {
-                clearInterval(interval);
-                setProgress(100);
-                setStatus("done");
-                setTranscript(statusData.transcript);
-                setFileId(statusData.file_id);
-                triggerAnalysis(statusData.file_id);
-              } else if (statusData.status === "error") {
-                clearInterval(interval);
-                setStatus("error");
-                setError(statusData.error || "Failed to process video.");
-              } else {
-                setStatus(statusData.status as Status);
+          cancelPollingRef.current = pollJobStatus(API_BASE, jobId, (s) => {
+            if (s.status === "done") {
+              setProgress(100);
+              setStatus("done");
+              setTranscript(s.transcript || "");
+              if (s.file_id) {
+                setFileId(s.file_id);
+                triggerAnalysis(s.file_id);
               }
-            } catch (e) {
-              // Ignore network hiccups during polling
+            } else if (s.status === "error") {
+              setStatus("error");
+              setError(s.error || "Failed to process video.");
+            } else {
+              setStatus(s.status as Status);
             }
-          }, 2000);
+          });
 
         } catch {
           setStatus("error");

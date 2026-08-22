@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeRedirectPath } from "../../lib/safeRedirect";
 import { Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 
 function AuthForm() {
@@ -31,11 +32,7 @@ function AuthForm() {
       if (refresh) localStorage.setItem("refresh_token", refresh);
       window.dispatchEvent(new Event("auth-change"));
 
-      if (redirect && redirect.startsWith("/")) {
-        router.replace(redirect);
-      } else {
-        router.replace("/");
-      }
+      router.replace(safeRedirectPath(redirect));
     }
   }, [searchParams, router]);
 
@@ -82,12 +79,7 @@ function AuthForm() {
         }
         // Trigger a custom event so Navbar can update immediately if it listens
         window.dispatchEvent(new Event("auth-change"));
-        const redirect = searchParams.get("redirect");
-        if (redirect && redirect.startsWith("/")) {
-          router.replace(redirect);
-        } else {
-          router.replace("/");
-        }
+        router.replace(safeRedirectPath(searchParams.get("redirect")));
       } else {
         throw new Error("No token received");
       }

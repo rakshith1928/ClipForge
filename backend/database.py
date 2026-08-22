@@ -53,6 +53,10 @@ class Episode(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=True)
     title = Column(String, nullable=True)
     filename = Column(String)
+    # On-disk basename actually served by /files (UUID-named).
+    # `filename` stays the human-readable display name.
+    storage_path = Column(String, nullable=True)
+    analysis_status = Column(String, nullable=True)  # None | pending | complete | error
     transcript = Column(Text)
     words = Column(JSON, default=list)
     word_count = Column(Integer, default=0)
