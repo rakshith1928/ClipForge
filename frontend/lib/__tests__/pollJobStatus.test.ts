@@ -5,10 +5,14 @@ const jsonResponse = (body: unknown) =>
   ({ ok: true, json: async () => body }) as Response;
 
 describe("pollJobStatus", () => {
-  beforeEach(() => vi.useFakeTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.setItem("access_token", "test-token");
+  });
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    localStorage.clear();
   });
 
   it("emits an update on every tick", async () => {
@@ -54,5 +58,15 @@ describe("pollJobStatus", () => {
     pollJobStatus("http://x", "j1", (u) => updates.push(u.status));
     await vi.advanceTimersByTimeAsync(6000);
     expect(updates).toEqual(["done"]);
+  });
+
+  it("sends the Authorization header", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ status: "done" }));
+    vi.stubGlobal("fetch", fetchMock);
+    pollJobStatus("http://x", "j1", () => {});
+    await vi.advanceTimersByTimeAsync(2000);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://x/upload/status/j1");
+    expect(init.headers.Authorization).toBe("Bearer test-token");
   });
 });

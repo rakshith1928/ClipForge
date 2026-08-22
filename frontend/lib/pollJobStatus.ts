@@ -1,6 +1,8 @@
 // Polls /upload/status/{jobId} until the job reaches a terminal state.
 // Returns a cancel() function so callers can clean up on unmount (AUDIT B6).
 
+import { authHeaders } from "./api";
+
 export type JobStatusUpdate = {
   status: string;
   progress?: number;
@@ -26,7 +28,9 @@ export function pollJobStatus(
 
   timer = setInterval(async () => {
     try {
-      const res = await fetch(`${apiBase}/upload/status/${jobId}`);
+      const res = await fetch(`${apiBase}/upload/status/${jobId}`, {
+        headers: authHeaders(),
+      });
       if (!res.ok) return; // wait for next tick
       const data: JobStatusUpdate = await res.json();
       onUpdate(data);
