@@ -35,9 +35,9 @@ def test_health_ok(client):
     assert r.json()["status"] == "ok"
 
 
-def test_unknown_analysis_returns_404(client):
+def test_unknown_analysis_returns_404(auth_client):
     # Does not call Groq — only checks the DB for the episode.
-    r = client.get("/analyze/does-not-exist")
+    r = auth_client.get("/analyze/does-not-exist")
     assert r.status_code == 404
 
 

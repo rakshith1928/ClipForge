@@ -9,7 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import Episode, GeneratedContent, get_db
+from auth import get_current_user
+from database import Episode, GeneratedContent, User, get_db
 
 load_dotenv()
 
@@ -59,9 +60,9 @@ def _mark_analysis_error(db: Session, file_id: str) -> None:
 
 
 @router.post("/")
-async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db)):
+async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Load the episode so we can fall back to its stored transcript/words
-    episode = db.query(Episode).filter(Episode.id == body.file_id).first()
+    episode = db.query(Episode).filter(Episode.id == body.file_id, Episode.user_id == current_user.id).first()
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found. Upload it first.")
 
@@ -196,7 +197,7 @@ Rules:
         # ── Save to PostgreSQL ────────────────────────────────────────────
 
         # Update the Episode record with analysis results
-        episode = db.query(Episode).filter(Episode.id == body.file_id).first()
+        episode = db.query(Episode).filter(Episode.id == body.file_id, Episode.user_id == current_user.id).first()
         if episode:
             episode.episode_summary = analysis.get("episode_summary", "")
             episode.main_themes = analysis.get("main_themes", [])
@@ -207,6 +208,7 @@ Rules:
             # Episode wasn't created during upload — create it now
             episode = Episode(
                 id=body.file_id,
+                user_id=current_user.id,
                 title=body.episode_title or "Untitled Podcast",
                 filename="",
                 transcript=transcript[:500],  # Store a preview
@@ -223,6 +225,7 @@ Rules:
             content = GeneratedContent(
                 id=str(uuid.uuid4()),
                 episode_id=body.file_id,
+                user_id=current_user.id,
                 content_type="clip",
                 title=clip.get("title", f"Clip {i+1}"),
                 body=clip.get("summary", ""),
@@ -243,6 +246,7 @@ Rules:
             content = GeneratedContent(
                 id=str(uuid.uuid4()),
                 episode_id=body.file_id,
+                user_id=current_user.id,
                 content_type="quote",
                 title=quote.get("theme", f"Quote {i+1}"),
                 body=quote.get("text", ""),
@@ -261,6 +265,7 @@ Rules:
             content = GeneratedContent(
                 id=str(uuid.uuid4()),
                 episode_id=body.file_id,
+                user_id=current_user.id,
                 content_type="twitter_thread",
                 title="Twitter Thread",
                 body=json.dumps(analysis["twitter_thread"]),
@@ -273,6 +278,7 @@ Rules:
             content = GeneratedContent(
                 id=str(uuid.uuid4()),
                 episode_id=body.file_id,
+                user_id=current_user.id,
                 content_type="linkedin",
                 title="LinkedIn Post",
                 body=analysis["linkedin_post"],
@@ -286,6 +292,7 @@ Rules:
                 id=str(uuid.uuid4()),
                 episode_id=body.file_id,
                 content_type="instagram",
+                user_id=current_user.id,
                 title="Instagram Caption",
                 body=analysis["instagram_caption"],
                 content_metadata={},
@@ -329,9 +336,9 @@ Rules:
 # ── GET /analyze/{file_id} — Fetch saved analysis from DB ────────────────────
 
 @router.get("/{file_id}")
-async def get_analysis(file_id: str, db: Session = Depends(get_db)):
+async def get_analysis(file_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Look up the episode
-    episode = db.query(Episode).filter(Episode.id == file_id).first()
+    episode = db.query(Episode).filter(Episode.id == file_id, Episode.user_id == current_user.id).first()
     if not episode:
         raise HTTPException(status_code=404, detail="Analysis not found or still processing")
 

@@ -6,6 +6,8 @@ from pathlib import Path
 
 from database import Episode
 
+from conftest import AUTH_USER_ID
+
 UPLOADS_DIR = Path("uploads")
 
 
@@ -19,27 +21,28 @@ def _seed_episode(db):
         words=[],
         word_count=2,
         duration=1.0,
+        user_id=AUTH_USER_ID,
     )
     db.add(episode)
     db.commit()
 
 
-def test_analyze_returns_storage_path_separate_from_display_name(client, db_session):
+def test_analyze_returns_storage_path_separate_from_display_name(auth_client, db_session):
     _seed_episode(db_session)
-    resp = client.get("/analyze/e2e-playback")
+    resp = auth_client.get("/analyze/e2e-playback")
     assert resp.status_code == 200
     body = resp.json()
     assert body["episode"]["storage_path"] == "e2e-playback.mp4"
     assert body["episode"]["filename"] == "My Original Podcast.mp4"
 
 
-def test_files_endpoint_serves_storage_path(client, db_session):
+def test_files_endpoint_serves_storage_path(auth_client, db_session):
     _seed_episode(db_session)
     UPLOADS_DIR.mkdir(exist_ok=True)
     target = UPLOADS_DIR / "e2e-playback.mp4"
     target.write_bytes(b"\x00fake-media\x00")
     try:
-        resp = client.get("/files/e2e-playback.mp4")
+        resp = auth_client.get("/files/e2e-playback.mp4")
         assert resp.status_code == 200
         assert b"fake-media" in resp.content
     finally:
