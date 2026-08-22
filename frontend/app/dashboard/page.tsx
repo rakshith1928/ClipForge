@@ -2,8 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "../components/ProtectedRoute";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE, apiFetch } from "../../lib/api";
 
 type Episode = {
   id: string;
@@ -23,7 +22,7 @@ export default function DashboardPage() {
     let cancelled = false;
     const load = async () => {
       try {
-        const r = await fetch(`${API_BASE}/calendar/episodes`);
+        const r = await apiFetch(`${API_BASE}/calendar/episodes`);
         const data = await r.json();
         if (!cancelled) setEpisodes(data.data?.episodes || []);
       } catch {

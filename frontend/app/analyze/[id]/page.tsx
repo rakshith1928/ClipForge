@@ -12,7 +12,7 @@ import type { Clip as FrontendClip } from '../../data/analyzeMockData';
 import { usePlaybackStore } from '../../../store/usePlaybackStore';
 import toast from 'react-hot-toast';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE, apiFetch } from '../../../lib/api';
 
 export type Quote = {
   text: string;
@@ -161,7 +161,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
 
     const pollAnalysis = async () => {
       try {
-        const res = await fetch(`${API_BASE}/analyze/${params.id}`);
+        const res = await apiFetch(`${API_BASE}/analyze/${params.id}`);
 
         attempts++;
 
@@ -318,7 +318,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
     setGeneratingClipId(clip.id);
     setClipDownloadUrls(prev => ({ ...prev, [clip.id]: null }));
     try {
-      const res = await fetch(`${API_BASE}/generate/clip`, {
+      const res = await apiFetch(`${API_BASE}/generate/clip`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -347,7 +347,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
   const generateQuoteCard = async (index: number, quote: Quote) => {
     setQuoteStates(prev => ({ ...prev, [index]: { loading: true, url: null } }));
     try {
-      const res = await fetch(`${API_BASE}/generate/quote-card`, {
+      const res = await apiFetch(`${API_BASE}/generate/quote-card`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

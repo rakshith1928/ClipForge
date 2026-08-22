@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { fetchPosts, scheduleEpisode, updatePostStatus } from "../../lib/calendarApi";
+import { API_BASE, apiFetch } from "../../lib/api";
 
 type Post = {
   id: string;
@@ -14,7 +15,6 @@ type Post = {
 };
 
 // Replace hardcoded localhost where possible with an env var approach
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
   twitter: (
@@ -133,7 +133,7 @@ export default function CalendarPage() {
   // Load episodes on mount
   const fetchEpisodes = async () => {
     try {
-      const r = await fetch(`${API_BASE}/calendar/episodes`);
+      const r = await apiFetch(`${API_BASE}/calendar/episodes`);
       const data = await r.json();
       const payload = data.data?.episodes || [];
       setEpisodes(payload);

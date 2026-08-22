@@ -4,10 +4,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { Loader2 } from "lucide-react";
 import { pollJobStatus } from "../../lib/pollJobStatus";
+import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 
 type Status = "idle" | "uploading" | "transcribing" | "done" | "error";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 function UploadPageInner() {
   const router = useRouter();
@@ -38,7 +37,7 @@ function UploadPageInner() {
     if (analysisTriggered.current) return;
     analysisTriggered.current = true;
     try {
-      await fetch(`${API_BASE}/analyze`, {
+      await apiFetch(`${API_BASE}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ file_id: fid }),
@@ -55,7 +54,7 @@ function UploadPageInner() {
     setError("");
     try {
       // 1. Instantly get the ticket (job_id)
-      const res = await fetch(`${API_BASE}/upload/url`, {
+      const res = await apiFetch(`${API_BASE}/upload/url`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, title: "" }),
@@ -172,6 +171,8 @@ function UploadPageInner() {
       setStatus("error");
       setError("Network or server connection dropped.");
     });
+    const token = authHeaders().Authorization;
+    if (token) xhr.setRequestHeader("Authorization", token);
     xhr.open("POST", `${API_BASE}/upload/`);
     xhr.send(formData);
   };
