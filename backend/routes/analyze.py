@@ -369,6 +369,7 @@ async def get_analysis(file_id: str, db: Session = Depends(get_db)):
             "title": episode.title or "Untitled Podcast",
             "summary": episode.episode_summary or "",
             "filename": episode.filename or "",
+            "storage_path": episode.storage_path or "",
             "duration": episode.duration or 0,
             "words": episode.words or [],
         },
