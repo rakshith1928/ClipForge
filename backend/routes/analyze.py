@@ -51,6 +51,13 @@ def find_timestamp(words: list, target_text: str, search_from: float = 0) -> dic
     return {"start": 0, "end": 0}
 
 
+def _mark_analysis_error(db: Session, file_id: str) -> None:
+    episode = db.query(Episode).filter(Episode.id == file_id).first()
+    if episode:
+        episode.analysis_status = "error"
+        db.commit()
+
+
 @router.post("/")
 async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db)):
     # Load the episode so we can fall back to its stored transcript/words
@@ -63,6 +70,9 @@ async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db)
 
     if not transcript:
         raise HTTPException(status_code=400, detail="Transcript is empty")
+
+    episode.analysis_status = "pending"
+    db.commit()
 
     if not os.getenv("GROQ_API_KEY"):
         raise HTTPException(status_code=500, detail="GROQ_API_KEY not set")
@@ -281,6 +291,7 @@ Rules:
             )
             db.add(content)
 
+        episode.analysis_status = "complete"
         db.commit()
 
         # ── Build response ────────────────────────────────────────────────
@@ -302,12 +313,15 @@ Rules:
             "twitter_thread": analysis.get("twitter_thread", []),
             "linkedin_post": analysis.get("linkedin_post", ""),
             "instagram_caption": analysis.get("instagram_caption", ""),
+            "analysis_status": "complete",
         }
 
     except json.JSONDecodeError as e:
+        _mark_analysis_error(db, body.file_id)
         raise HTTPException(status_code=500, detail=f"Invalid JSON from Groq: {str(e)}") from e
     except Exception as e:
         db.rollback()
+        _mark_analysis_error(db, body.file_id)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -381,4 +395,5 @@ async def get_analysis(file_id: str, db: Session = Depends(get_db)):
         "twitter_thread": twitter_thread,
         "linkedin_post": linkedin_post,
         "instagram_caption": instagram_caption,
+        "analysis_status": episode.analysis_status or "pending",
     }
