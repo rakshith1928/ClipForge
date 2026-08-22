@@ -15,7 +15,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, validator
 from sqlalchemy.orm import Session
 
-from database import GeneratedContent, get_db
+from auth import get_current_user
+from database import Episode, GeneratedContent, User, get_db
 
 router = APIRouter(prefix="/generate", tags=["generate"])
 
@@ -235,11 +236,25 @@ def generate_quote_card(
     img.save(str(output_path), "PNG", quality=95)
 
 
+# ── Helper: ensure the caller owns the referenced episode ────────────────────
+
+def _owned_episode_or_404(db: Session, episode_id: str, user: User) -> Episode:
+    episode = db.query(Episode).filter(
+        Episode.id == episode_id, Episode.user_id == user.id
+    ).first()
+    if not episode:
+        raise HTTPException(status_code=404, detail="Episode not found")
+    return episode
+
+
 # ── Route: POST /generate/clip ───────────────────────────────────────────────
 
 @router.post("/clip")
-async def create_clip(body: ClipRequest, db: Session = Depends(_db_session)):
+async def create_clip(body: ClipRequest, db: Session = Depends(_db_session), current_user: User = Depends(get_current_user)):
     """Cut a video clip, save it to DB, and return a download URL."""
+    episode = _owned_episode_or_404(db, body.episode_id, current_user)
+    if body.file_id != body.episode_id:
+        raise HTTPException(status_code=400, detail="file_id and episode_id must match")
 
     try:
         video_path = find_video_file(body.file_id)
@@ -261,6 +276,7 @@ async def create_clip(body: ClipRequest, db: Session = Depends(_db_session)):
         id=str(uuid.uuid4()),
         episode_id=body.episode_id,
         content_type="clip_file",
+        user_id=current_user.id,
         title=body.title or f"Clip {clip_id}",
         body="",
         file_path=str(output_path),
@@ -286,8 +302,9 @@ async def create_clip(body: ClipRequest, db: Session = Depends(_db_session)):
 # ── Route: POST /generate/quote-card ────────────────────────────────────────
 
 @router.post("/quote-card")
-async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(_db_session)):
+async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(_db_session), current_user: User = Depends(get_current_user)):
     """Generate a quote card image, save it to DB, and return a download URL."""
+    _owned_episode_or_404(db, body.episode_id, current_user)
 
     card_id = str(uuid.uuid4())[:8]
     output_filename = f"quote_card_{card_id}.png"
@@ -311,6 +328,7 @@ async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(_db_se
         id=str(uuid.uuid4()),
         episode_id=body.episode_id,
         content_type="quote_card",
+        user_id=current_user.id,
         title=f"Quote Card — {body.speaker}" if body.speaker else "Quote Card",
         body=body.quote_text,
         file_path=str(output_path),
