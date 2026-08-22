@@ -252,7 +252,7 @@ def _owned_episode_or_404(db: Session, episode_id: str, user: User) -> Episode:
 @router.post("/clip")
 async def create_clip(body: ClipRequest, db: Session = Depends(_db_session), current_user: User = Depends(get_current_user)):
     """Cut a video clip, save it to DB, and return a download URL."""
-    episode = _owned_episode_or_404(db, body.episode_id, current_user)
+    _owned_episode_or_404(db, body.episode_id, current_user)
     if body.file_id != body.episode_id:
         raise HTTPException(status_code=400, detail="file_id and episode_id must match")
 

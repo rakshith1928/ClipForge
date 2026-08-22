@@ -2,7 +2,7 @@
 
 from database import Job
 
-from conftest import AUTH_USER_ID, bearer_for, make_user
+from conftest import AUTH_USER_ID, make_user
 
 
 def test_upload_requires_auth(client):
