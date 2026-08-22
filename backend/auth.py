@@ -29,7 +29,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440)
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 # ── OAuth Config ─────────────────────────────────────────────────────────────
 oauth = OAuth()
@@ -79,6 +79,8 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     token = credentials.credentials
     # Require an access token specifically: a refresh token (or any other
     # JWT type) must not be accepted as bearer credentials, mirroring the

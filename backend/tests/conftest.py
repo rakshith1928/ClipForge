@@ -77,3 +77,41 @@ def db_session():
         yield db
     finally:
         db.close()
+
+
+# ── Auth helpers (A1) ─────────────────────────────────────────────────────────
+
+AUTH_USER_ID = "auth-test-user"
+
+
+def make_user(db_session, user_id: str = AUTH_USER_ID):
+    """Create (or reuse) a User row so JWT dependencies can resolve it."""
+    from database import User
+
+    user = db_session.query(User).filter(User.id == user_id).first()
+    if not user:
+        user = User(
+            id=user_id,
+            email=f"{user_id}@example.com",
+            name="Test User",
+            hashed_password=None,
+            provider="local",
+        )
+        db_session.add(user)
+        db_session.commit()
+    return user
+
+
+def bearer_for(user_id: str) -> dict:
+    from auth import create_access_token
+
+    return {"Authorization": f"Bearer {create_access_token(user_id)}"}
+
+
+@pytest.fixture
+def auth_client(client, db_session):
+    """TestClient pre-configured with a valid Bearer token for AUTH_USER_ID."""
+    make_user(db_session)
+    client.headers.update(bearer_for(AUTH_USER_ID))
+    yield client
+    client.headers.pop("Authorization", None)

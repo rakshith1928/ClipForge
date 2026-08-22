@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from config import get_secret
+from auth import router as auth_router
 from database import init_db
 from routes.analyze import router as analyze_router
 from routes.calendar import router as calendar_router
@@ -43,6 +44,7 @@ app.include_router(upload_router)
 app.include_router(analyze_router)
 app.include_router(generate_router)
 app.include_router(calendar_router)
+app.include_router(auth_router)
 
 @app.get("/health")
 def health_check():
