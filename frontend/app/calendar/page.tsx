@@ -2,6 +2,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { ProtectedRoute } from "../components/ProtectedRoute";
+import { fetchPosts, scheduleEpisode, updatePostStatus } from "../../lib/calendarApi";
 
 type Post = {
   id: string;
@@ -160,11 +161,9 @@ export default function CalendarPage() {
   useEffect(() => {
     if (!selectedEpisode) return;
     setStatus("loading");
-    fetch(`${API_BASE}/calendar/posts/${selectedEpisode}`)
-      .then(r => r.json())
-      .then(data => {
-        const payload = data.data?.posts || [];
-        setPosts(payload);
+    fetchPosts(API_BASE, selectedEpisode)
+      .then((payload) => {
+        setPosts(payload as Post[]);
         setStatus(payload.length > 0 ? "done" : "idle");
       })
       .catch((err) => {
@@ -179,25 +178,13 @@ export default function CalendarPage() {
     setScheduling(true);
 
     try {
-      await fetch(`${API_BASE}/calendar/schedule`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          episode_id: selectedEpisode,
-          start_date: startDate,
-        }),
-      });
-
-      // Reload posts
-      const res = await fetch(`${API_BASE}/calendar/posts/${selectedEpisode}`);
-      const data = await res.json();
-      const scheduledPosts = data.data?.posts || [];
-      setPosts(scheduledPosts);
-      setStatus("done");
+      await scheduleEpisode(API_BASE, selectedEpisode, startDate);
+      const scheduledPosts = await fetchPosts(API_BASE, selectedEpisode);
+      setPosts(scheduledPosts as Post[]);
+      setStatus(scheduledPosts.length > 0 ? "done" : "idle");
       showToast("30-Day Plan Generated!");
-
     } catch (err) {
-      showToast("Scheduling failed.");
+      showToast(err instanceof Error ? err.message : "Scheduling failed.");
     } finally {
       setScheduling(false);
     }
@@ -206,10 +193,10 @@ export default function CalendarPage() {
   // Mark post as posted/skipped
   const updateStatus = async (postId: string, newStatus: string) => {
     try {
-      await fetch(`${API_BASE}/calendar/posts/${postId}/status?status=${newStatus}`, { method: "PATCH" });
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: newStatus } : p));
+      await updatePostStatus(API_BASE, postId, newStatus);
+      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, status: newStatus } : p)));
       if (newStatus === "posted") showToast("Post marked as successful!");
-    } catch (err) {
+    } catch {
       showToast("Failed to update status");
     }
   };
