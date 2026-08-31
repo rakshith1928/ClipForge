@@ -99,6 +99,14 @@ async def transcribe_audio(audio_path: Path) -> dict:
     if not DEEPGRAM_API_KEY:
         raise RuntimeError("DEEPGRAM_API_KEY not set in .env")
 
+    # D4 OOM guard: fail early before loading 500MB+ audio into memory
+    if audio_path.stat().st_size > 500 * 1024 * 1024:
+        try:
+            audio_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise HTTPException(status_code=413, detail="Audio too large")
+
     from deepgram import DeepgramClient, PrerecordedOptions
 
     client = DeepgramClient(DEEPGRAM_API_KEY)
