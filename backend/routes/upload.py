@@ -211,6 +211,8 @@ def _download_with_ytdlp(url: str, out_path: str) -> None:
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
+        "max_filesize": 2 * 1024 * 1024 * 1024,  # 2GB
+        "socket_timeout": 30,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
@@ -229,6 +231,8 @@ async def start_upload_from_url(
     Receives URL, fetches metadata to enforce limits, immediately creates a Job ticket in DB, 
     passes work to Celery, and returns the ticket ID.
     """
+    from utils.url_validator import validate_upload_url
+    validate_upload_url(body.url)
     # 1. Fetch metadata to check duration limit (runs in threadpool to prevent blocking)
     try:
         loop = asyncio.get_event_loop()

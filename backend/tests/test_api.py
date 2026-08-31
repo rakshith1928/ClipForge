@@ -170,6 +170,6 @@ def test_upload_from_url_uses_lazily_imported_ytdlp(auth_client, monkeypatch):
     fake_module.YoutubeDL = FakeYoutubeDL
     monkeypatch.setitem(sys.modules, "yt_dlp", fake_module)
 
-    r = auth_client.post("/upload/url", json={"url": "https://example.com/video", "title": "t"})
+    r = auth_client.post("/upload/url", json={"url": "https://www.youtube.com/watch?v=test123", "title": "t"})
     assert r.status_code == 400
     assert "1 hour maximum duration limit" in r.json()["detail"]
