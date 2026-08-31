@@ -1,6 +1,7 @@
 # backend/routes/analyze.py
 
 import json
+import logging
 import os
 import uuid
 
@@ -16,6 +17,8 @@ from middleware.rate_limit import limiter
 from tasks.analyze import analyze_episode_task
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/analyze", tags=["analyze"])
 
@@ -74,7 +77,14 @@ async def analyze_transcript(request: Request, body: AnalyzeRequest, db: Session
     job = Job(id=str(uuid.uuid4()), user_id=current_user.id, status="queued", progress=0)
     db.add(job)
     db.commit()
-    analyze_episode_task.delay(body.file_id, current_user.id)
+    try:
+        analyze_episode_task.delay(body.file_id, current_user.id)
+    except Exception as e:
+        logger.exception("Analyze dispatch failed for user %s file %s", current_user.id, body.file_id)
+        job.status = "error"
+        job.error = "Dispatch failed"
+        db.commit()
+        raise HTTPException(status_code=500, detail="Analysis dispatch failed, please retry") from e
     return {"job_id": job.id, "status": "queued", "analysis_status": "pending"}
 
 

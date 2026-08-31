@@ -18,6 +18,9 @@ from routes.analyze import router as analyze_router
 from routes.calendar import router as calendar_router
 from routes.generate import router as generate_router
 from routes.upload import router as upload_router
+from utils.logging_config import setup_logging
+
+setup_logging()
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)

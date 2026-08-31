@@ -4,6 +4,8 @@
 # 2. Generates quote card images using Pillow
 # All output files go to the uploads/ folder and are served back as download links
 
+import logging
+import math
 import os
 import re
 import subprocess
@@ -14,7 +16,8 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.orm import Session
-import math
+
+logger = logging.getLogger(__name__)
 
 from auth import get_current_user
 from database import Episode, GeneratedContent, Job, User, get_db
@@ -291,7 +294,14 @@ async def create_clip(request: Request, body: ClipRequest, db: Session = Depends
     job = Job(id=str(uuid.uuid4()), user_id=current_user.id, status="queued", progress=0)
     db.add(job)
     db.commit()
-    generate_clip_task.delay(body.file_id, body.episode_id, body.start_time, body.end_time, body.title, current_user.id)
+    try:
+        generate_clip_task.delay(body.file_id, body.episode_id, body.start_time, body.end_time, body.title, current_user.id)
+    except Exception as e:
+        logger.exception("Clip dispatch failed for user %s file %s", current_user.id, body.file_id)
+        job.status = "error"
+        job.error = "Dispatch failed"
+        db.commit()
+        raise HTTPException(status_code=500, detail="Job dispatch failed, please retry") from e
     return {"job_id": job.id, "status": "queued"}
 
 
@@ -317,7 +327,8 @@ async def create_quote_card(body: QuoteCardRequest, db: Session = Depends(_db_se
             output_path=output_path,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        logger.exception("Quote card generation failed for user %s episode %s", current_user.id, body.episode_id)
+        raise HTTPException(status_code=500, detail="Failed to generate quote card, please retry") from e
 
     # Save to DB so we can track every generated quote card
     content = GeneratedContent(

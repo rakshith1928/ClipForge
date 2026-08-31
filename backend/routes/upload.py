@@ -2,6 +2,7 @@
 # Handles receiving the uploaded file, saving it, extracting audio, and transcribing it
 
 import asyncio
+import logging
 import os
 import subprocess
 import uuid
@@ -18,6 +19,8 @@ from database import Episode, Job, User, get_db
 from middleware.rate_limit import limiter
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
@@ -88,9 +91,9 @@ def _cleanup_files(*paths: Path) -> None:
         try:
             if p and p.exists():
                 p.unlink()
-                print(f"[cleanup] Deleted: {p}")
+                logger.info("[cleanup] Deleted: %s", p)
         except Exception as e:
-            print(f"[cleanup] Warning: could not delete {p}: {e}")
+            logger.warning("[cleanup] Warning: could not delete %s: %s", p, e)
 
 
 # ── Helper: send audio to Deepgram for transcription ────────────────────────
@@ -182,7 +185,7 @@ async def upload_episode(
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
 
-    print(f"Saving file: {file.filename}")
+    logger.info("Saving file: %s for user %s", file.filename, current_user.id)
     saved_path = await save_upload(file)
     job_id = saved_path.stem
 
@@ -210,8 +213,9 @@ async def upload_episode(
         )
     except Exception as e:
         # Broker down — mark failed and cleanup file (B4, B5)
+        logger.exception("File dispatch failed for user %s job %s", current_user.id, job_id)
         new_job.status = "error"
-        new_job.error = f"Dispatch failed: {e}"
+        new_job.error = "Dispatch failed"
         db.commit()
         try:
             saved_path.unlink(missing_ok=True)
@@ -288,9 +292,10 @@ async def start_upload_from_url(
     except HTTPException:
         raise
     except Exception as e:
+        logger.exception("Failed to fetch video info for user %s url %s", current_user.id, body.url)
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid URL or failed to fetch video info: {e}",
+            detail="Invalid URL or failed to fetch video info",
         ) from e
     job_id = str(uuid.uuid4())
     
@@ -310,8 +315,9 @@ async def start_upload_from_url(
     try:
         process_url_job.delay(job_id, body.url, body.title, current_user.id)
     except Exception as e:
+        logger.exception("URL dispatch failed for user %s job %s", current_user.id, job_id)
         new_job.status = "error"
-        new_job.error = f"Dispatch failed: {e}"
+        new_job.error = "Dispatch failed"
         db.commit()
         raise HTTPException(status_code=500, detail="Job dispatch failed, please retry") from e
 

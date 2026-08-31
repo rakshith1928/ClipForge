@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from pathlib import Path
 
 from celery_app import celery_app
@@ -10,6 +11,8 @@ from routes.upload import (
     extract_audio,
     transcribe_audio,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @celery_app.task(
@@ -37,7 +40,7 @@ def process_file_job(self, job_id: str, saved_path_str: str, original_filename: 
         db.commit()
 
         if content_type.startswith("video/"):
-            print(f"[ffmpeg] Extracting audio for Job {job_id}...")
+            logger.info("[ffmpeg] Extracting audio for Job %s", job_id)
             audio_path = extract_audio(saved_path)
         else:
             audio_path = saved_path
@@ -45,7 +48,7 @@ def process_file_job(self, job_id: str, saved_path_str: str, original_filename: 
         job.progress = 70
         db.commit()
 
-        print(f"[deepgram] Transcribing Job {job_id}...")
+        logger.info("[deepgram] Transcribing Job %s", job_id)
         transcription = asyncio.run(transcribe_audio(audio_path))
 
         job.progress = 90
@@ -68,14 +71,14 @@ def process_file_job(self, job_id: str, saved_path_str: str, original_filename: 
         job.progress = 100
         job.file_id = job_id
         db.commit()
-        print(f"[db] Job & Episode saved: {job_id}")
+        logger.info("[db] Job & Episode saved: %s", job_id)
 
     except Exception as e:
         db.rollback()
         job.status = "error"
         job.error = str(e)
         db.commit()
-        print(f"[error] Job {job_id} failed: {e}")
+        logger.exception("[error] Job %s failed", job_id)
 
     finally:
         paths_to_delete = []
@@ -117,7 +120,7 @@ def process_url_job(self, job_id: str, url: str, title: str | None, user_id: str
         db.commit()
 
         video_path = UPLOAD_DIR / f"{job_id}.mp4"
-        print(f"[yt-dlp] Downloading Job {job_id}: {url}")
+        logger.info("[yt-dlp] Downloading Job %s: %s", job_id, url)
         
         _download_with_ytdlp(url, str(video_path))
 
@@ -133,14 +136,14 @@ def process_url_job(self, job_id: str, url: str, title: str | None, user_id: str
         job.progress = 50
         db.commit()
 
-        print(f"[ffmpeg] Extracting audio for Job {job_id}...")
+        logger.info("[ffmpeg] Extracting audio for Job %s", job_id)
         audio_path = extract_audio(actual_path)
 
         # 3. Transcribe
         job.progress = 70
         db.commit()
 
-        print(f"[deepgram] Transcribing Job {job_id}...")
+        logger.info("[deepgram] Transcribing Job %s", job_id)
         transcription = asyncio.run(transcribe_audio(audio_path))
 
         # 4. Save to Database
@@ -163,14 +166,14 @@ def process_url_job(self, job_id: str, url: str, title: str | None, user_id: str
         job.progress = 100
         job.file_id = job_id
         db.commit()
-        print(f"[db] Job & Episode saved: {job_id}")
+        logger.info("[db] Job & Episode saved: %s", job_id)
 
     except Exception as e:
         db.rollback()
         job.status = "error"
         job.error = str(e)
         db.commit()
-        print(f"[error] Job {job_id} failed: {e}")
+        logger.exception("[error] Job %s failed", job_id)
 
     finally:
         # Guaranteed Cleanup — no more disk leaks!

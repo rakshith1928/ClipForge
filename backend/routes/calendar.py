@@ -6,6 +6,8 @@ import uuid
 from datetime import date, datetime, timedelta
 from typing import List
 
+import logging
+
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, validator
@@ -15,6 +17,8 @@ from auth import get_current_user
 from database import Episode, GeneratedContent, ScheduledPost, User, get_db
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
@@ -190,7 +194,8 @@ def schedule_content(body: ScheduleRequest, db: Session = Depends(get_db),
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        logger.exception("Schedule failed for user %s episode %s", current_user.id, body.episode_id)
+        raise HTTPException(status_code=500, detail="Failed to schedule content, please retry") from e
 
 # ── Route: Get calendar for an episode ──────────────────────────────────────
 

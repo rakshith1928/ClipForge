@@ -1,10 +1,13 @@
 # JWT creation, password hashing, and all auth endpoints
 
+import logging
 import os
 import re
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, HTTPException
@@ -153,7 +156,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     # Check if email already exists
     existing = db.query(User).filter(User.email == body.email.lower()).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=409, detail="Email already registered")
 
     try:
         user = User(
@@ -179,7 +182,14 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        # Handle race condition: concurrent duplicate inserts
+        from sqlalchemy.exc import IntegrityError
+
+        if isinstance(e, IntegrityError):
+            logger.exception("Register IntegrityError for email %s", body.email.lower())
+            raise HTTPException(status_code=409, detail="Email already registered") from e
+        logger.exception("Register failed for email %s", body.email.lower())
+        raise HTTPException(status_code=500, detail="Registration failed, please retry") from e
 
 
 @router.post("/login")
@@ -259,7 +269,8 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
     try:
         token = await oauth.google.authorize_access_token(request)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"OAuth error: {str(e)}") from e
+        logger.exception("OAuth authorize_access_token failed")
+        raise HTTPException(status_code=400, detail="OAuth authentication failed, please retry") from e
         
     user_info = token.get('userinfo')
     if not user_info:
