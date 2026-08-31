@@ -26,6 +26,8 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 
 
+MAX_UPLOAD_SIZE = 2 * 1024 * 1024 * 1024  # 2GB
+
 # ── Helper: save the uploaded file to disk ──────────────────────────────────
 
 async def save_upload(file: UploadFile) -> Path:
@@ -36,8 +38,14 @@ async def save_upload(file: UploadFile) -> Path:
 
     import aiofiles
 
+    total = 0
     async with aiofiles.open(file_path, "wb") as out:
         while chunk := await file.read(1024 * 1024):
+            total += len(chunk)
+            if total > MAX_UPLOAD_SIZE:
+                await out.close()
+                file_path.unlink(missing_ok=True)
+                raise HTTPException(status_code=413, detail="File exceeds 2GB limit")
             await out.write(chunk)
 
     return file_path
