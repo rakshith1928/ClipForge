@@ -269,3 +269,202 @@ Git diff highlights:
 
 **Commit:** `feat: enforce upload size limits and clip request validation (A3, B9)` (see git log)
 **Report path:** `C:\Users\DELL\podclip\.superpowers\sdd\2026-08-22-phase1b-hardening\task-2-report.md`
+
+---
+
+## Fix — Review 6e46645..e97af7a "Needs fixes" (4 Important issues)
+
+**Branch:** `feat/phase1b-hardening` (head `e97af7a` → `8cb0ed5`, base `5d05529`)
+**Date:** 2026-08-31
+**Commit:** `8cb0ed5 fix: address Task 2 review - stream guard, field_validator, hex tests`
+**Review source:** `review-6e46645..e97af7a.diff` summary "Needs fixes" (4 Important)
+
+### Fix 1 — D4 `transcribe_audio` OOM guard (`backend/routes/upload.py:97-115`)
+
+**Issue:** `transcribe_audio` still `open(...).read()` full load before Deepgram call (`upload.py:97-107`). No size check.
+
+**Fix:** Added guard BEFORE `open().read()` and BEFORE `DeepgramClient` init:
+
+```python
+# D4 OOM guard: fail early before loading 500MB+ audio into memory
+if audio_path.stat().st_size > 500 * 1024 * 1024:
+    try:
+        audio_path.unlink(missing_ok=True)
+    except Exception:
+        pass
+    raise HTTPException(status_code=413, detail="Audio too large")
+
+from deepgram import DeepgramClient, PrerecordedOptions
+client = DeepgramClient(DEEPGRAM_API_KEY)
+with open(audio_path, "rb") as audio_file:
+    buffer_data = audio_file.read()
+```
+
+- Cap: `500 * 1024 * 1024` (500 MB audio) per review spec — separate from `MAX_UPLOAD_SIZE = 2GB` which remains in `save_upload` (verified still present `upload.py:29,40-49` with `close`+`unlink`+`413`).
+- Keeps Deepgram buffer path for now (streaming API is follow-up as noted in review).
+- Unlink on exceed to match "If file exceeds, unlink and fail early" — prevents orphaned oversized audio after FFmpeg extraction.
+- Validated via manual mock:
+
+```
+mock_path.stat().st_size = 600*1024*1024
+asyncio.run(transcribe_audio(mock_path)) -> HTTPException(413, "Audio too large"), unlink.called=True
+```
+
+Location: `backend/routes/upload.py:102-108`
+
+### Fix 2 — Pydantic `@validator` deprecated → `@field_validator` / `@model_validator` (`backend/routes/generate.py:14-87`)
+
+**Issue:** `generate.py:49,55,80` used deprecated `@validator` + `values` dict (Pydantic v2 `PydanticDeprecatedSince20` warning).
+
+**Fix:** Migrated to Pydantic v2 idioms:
+
+```python
+from pydantic import BaseModel, Field, field_validator, model_validator
+import math
+
+class ClipRequest(BaseModel):
+    start_time: float = Field(ge=0)
+    end_time: float = Field(ge=0)
+
+    @field_validator("start_time", "end_time", mode="after")
+    @classmethod
+    def no_nan_inf(cls, v: float) -> float:
+        if math.isnan(v) or math.isinf(v):
+            raise ValueError("must be finite number")
+        return v
+
+    @model_validator(mode="after")
+    def end_after_start(self):
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time must be > start_time")
+        return self
+
+class QuoteCardRequest(BaseModel):
+    @field_validator("quote_text", mode="after")
+    @classmethod
+    def quote_text_not_empty(cls, v: str) -> str: ...
+
+    @field_validator("bg_color", "text_color", "accent_color", mode="after")
+    @classmethod
+    def valid_hex_color(cls, v: str) -> str:
+        if not HEX_COLOR_RE.match(v):
+            raise ValueError("must be hex color like #0f0f0f")
+        return v
+```
+
+- `no_nan_inf` keeps `math.isnan/isinf` check, signature `def func(cls, v: float) -> float` as requested.
+- Cross-field `end>start` moved to `@model_validator(mode="after")` on `self` (correct v2 signature; replaces `values` dict).
+- Kept `Field(ge=0)` — verified rejects `-1`, `NaN`, `Inf`, and `end<=start`:
+
+```
+-1: REJECTED ge=0
+nan: REJECTED ge=0 (also finite check)
+inf: REJECTED finite
+end<=start (10,5): REJECTED model_validator
+end==start (5,5): REJECTED model_validator
+valid (0,10): PASS
+```
+
+- No `PydanticDeprecatedSince20` from `generate.py` after fix (only remaining are `auth.py`/`calendar.py` out of scope).
+- `quote_text_not_empty` and `valid_hex_color` also migrated for consistency.
+
+Locations: `backend/routes/generate.py:14-15,49-87`
+
+### Fix 3 — Test `test_save_upload_rejects_oversized` mock-coupling (`backend/tests/test_upload_limits.py:14-32`)
+
+**Issue:** Test mocked `aiofiles.open` but did not assert streaming cap or cleanup.
+
+**Fix:** Kept same mock, added assertions inside `with patch("aiofiles.open")` + `patch.object(Path, "unlink")`:
+
+```python
+with patch("aiofiles.open") as mock_aio_open, patch.object(Path, "unlink", return_value=None) as mock_unlink:
+    mock_aio_open.return_value.__aenter__.return_value = mock_out
+    mock_aio_open.return_value.__aexit__.return_value = None
+    with pytest.raises(HTTPException) as exc:
+        await save_upload(mock_file)
+    assert exc.value.status_code == 413
+    assert "2GB" in exc.value.detail
+    assert mock_out.write.call_count <= 2048
+    assert mock_out.write.call_count >= 2047  # 2048 exact, allow 2047 for edge
+    assert mock_unlink.called
+```
+
+- `write.call_count` capped near 2048 (first 2048 MB written, 2049th triggers `413` without write — exact is 2048).
+- `unlink` `assert called` confirms cleanup.
+- Still patches `aiofiles.open` globally (inner import) and uses `chunks = [b"x"*1MB]*2049`.
+
+Location: `backend/tests/test_upload_limits.py:22-32`
+
+### Fix 4 — Missing QuoteCard hex validation test (`backend/tests/test_upload_limits.py:50-54`)
+
+**Added:**
+
+```python
+def test_quote_card_rejects_bad_hex():
+    from routes.generate import QuoteCardRequest
+    with pytest.raises(Exception):
+        QuoteCardRequest(episode_id="x", quote_text="hello", bg_color="not-hex", text_color="#ffffff", accent_color="#7c3aed")
+    with pytest.raises(Exception):
+        QuoteCardRequest(episode_id="x", quote_text="hello", bg_color="#fff", text_color="#ffffff", accent_color="#7c3aed")
+```
+
+- First case `not-hex` fails `^#[0-9a-fA-F]{6}$`.
+- Second case `#fff` (3-digit shorthand) fails — required 6-digit, as brief intended.
+- Also manually verified `#gggggg`, `ffffff`, `#12345`, `#1234567` all rejected; valid `#0f0f0f` etc. pass.
+
+Location: `backend/tests/test_upload_limits.py:50-54`
+
+### Verification
+
+**1. `tests/test_upload_limits.py -v`** (workdir `backend`, `venv\Scripts\python.exe -m pytest tests/test_upload_limits.py -v`):
+
+```
+collected 5 items
+tests/test_upload_limits.py .....                                        [100%]
+============================== 5 passed in 0.25s ==============================
+```
+
+5 = 4 original + 1 new `test_quote_card_rejects_bad_hex`.
+
+**2. Full suite `pytest -q` / `pytest -v`** (`venv\Scripts\python.exe -m pytest -q` then `-v`):
+
+```
+collected 74 items
+tests/test_analysis_status.py ....                                       [  5%]
+tests/test_api.py ...............                                        [ 25%]
+tests/test_auth_analyze.py ....                                          [ 31%]
+tests/test_auth_calendar.py ......                                       [ 39%]
+tests/test_auth_generate.py .....                                        [ 45%]
+tests/test_auth_infra.py ....                                            [ 51%]
+tests/test_auth_upload.py .....                                          [ 58%]
+tests/test_config.py .......                                             [ 67%]
+tests/test_playback_contract.py ...                                      [ 71%]
+tests/test_security.py ...........                                       [ 86%]
+tests/test_upload_limits.py .....                                        [ 93%]
+tests/test_url_validator.py .....                                        [100%]
+============================= 74 passed in 6.49s ==============================
+```
+
+74 = 73 prior + 1 new hex test. No regressions. No Pydantic deprecation from `generate.py`.
+
+**3. Manual field validation (ClipRequest + QuoteCardRequest + transcribe guard)** — all as above, see Fix 1/2 details.
+
+### Files Changed (Fix commit `8cb0ed5`)
+
+| File | Change |
+|------|--------|
+| `backend/routes/upload.py` | +8 OOM guard before `open().read()` — `stat().st_size > 500MB` → `413 Audio too large` + unlink (`upload.py:102-108`) |
+| `backend/routes/generate.py` | `validator` → `field_validator`/`model_validator`, correct `cls, v` and `self` signatures, `math.isnan/isinf` kept, `Field(ge=0)` kept (`generate.py:14-15,49-87`) |
+| `backend/tests/test_upload_limits.py` | `mock_unlink` captured + `write.call_count <=2048` + `unlink.called` assertions; added `test_quote_card_rejects_bad_hex` (6 lines) |
+
+Diff summary `git diff --stat` against `e97af7a`: `3 files changed, 35 insertions(+), 12 deletions(-)`.
+
+### Self-Review
+
+- OOM guard is before any buffer alloc, uses `Path.stat()` (sync) appropriate since `transcribe_audio` is `async` but path is local FS; no extra `aiofiles` needed. Streaming Deepgram API remains follow-up.
+- `model_validator` correctly handles cross-field; single-field validators correctly use `@classmethod` + `mode="after"` so `ge=0` runs first (still rejects negatives/NaN).
+- Test enhancement does not weaken mock — still uses `2049*1MB` side_effect, still asserts `413`+`"2GB"`.
+- Hex test matches spec verbatim (2 raises).
+- No secrets/.env touched. Trunk `feat/phase1b-hardening` ready for next Task.
+
+**Report path:** `C:\Users\DELL\podclip\.superpowers\sdd\2026-08-22-phase1b-hardening\task-2-report.md`
