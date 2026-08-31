@@ -12,7 +12,15 @@ from routes.upload import (
 )
 
 
-@celery_app.task(bind=True)
+@celery_app.task(
+    bind=True,
+    acks_late=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    max_retries=3,
+    time_limit=600,
+    soft_time_limit=480,
+)
 def process_file_job(self, job_id: str, saved_path_str: str, original_filename: str, content_type: str, title: str | None, user_id: str | None = None):
     db = SessionLocal()
     job = db.query(Job).filter(Job.id == job_id).first()
@@ -79,7 +87,15 @@ def process_file_job(self, job_id: str, saved_path_str: str, original_filename: 
         db.close()
 
 
-@celery_app.task(bind=True)
+@celery_app.task(
+    bind=True,
+    acks_late=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    max_retries=3,
+    time_limit=600,
+    soft_time_limit=480,
+)
 def process_url_job(self, job_id: str, url: str, title: str | None, user_id: str | None = None):
     """
     Background worker function executed by Celery.

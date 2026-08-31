@@ -199,14 +199,25 @@ async def upload_episode(
 
     # Import worker locally to avoid circular import
     from worker import process_file_job
-    process_file_job.delay(
-        job_id,
-        str(saved_path),
-        file.filename,
-        file.content_type,
-        title,
-        current_user.id,
-    )
+    try:
+        process_file_job.delay(
+            job_id,
+            str(saved_path),
+            file.filename,
+            file.content_type,
+            title,
+            current_user.id,
+        )
+    except Exception as e:
+        # Broker down — mark failed and cleanup file (B4, B5)
+        new_job.status = "error"
+        new_job.error = f"Dispatch failed: {e}"
+        db.commit()
+        try:
+            saved_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise HTTPException(status_code=500, detail="Job dispatch failed, please retry") from e
 
     return JSONResponse({
         "job_id": job_id,
@@ -296,7 +307,13 @@ async def start_upload_from_url(
 
     # Import worker locally to avoid circular import
     from worker import process_url_job
-    process_url_job.delay(job_id, body.url, body.title, current_user.id)
+    try:
+        process_url_job.delay(job_id, body.url, body.title, current_user.id)
+    except Exception as e:
+        new_job.status = "error"
+        new_job.error = f"Dispatch failed: {e}"
+        db.commit()
+        raise HTTPException(status_code=500, detail="Job dispatch failed, please retry") from e
 
     return JSONResponse({
         "job_id": job_id,
