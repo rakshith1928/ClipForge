@@ -11,13 +11,15 @@ import textwrap
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.orm import Session
 import math
 
 from auth import get_current_user
 from database import Episode, GeneratedContent, Job, User, get_db
+from middleware.quotas import check_clip_quota
+from middleware.rate_limit import limiter
 
 try:
     from tasks.generate import generate_clip_task
@@ -279,8 +281,10 @@ def _owned_episode_or_404(db: Session, episode_id: str, user: User) -> Episode:
 # ── Route: POST /generate/clip ───────────────────────────────────────────────
 
 @router.post("/clip", status_code=202)
-async def create_clip(body: ClipRequest, db: Session = Depends(_db_session), current_user: User = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def create_clip(request: Request, body: ClipRequest, db: Session = Depends(_db_session), current_user: User = Depends(get_current_user)):
     """Dispatch FFmpeg clip generation to Celery and return a job handle."""
+    check_clip_quota(db, current_user.id)
     _owned_episode_or_404(db, body.episode_id, current_user)
     if body.file_id != body.episode_id:
         raise HTTPException(status_code=400, detail="file_id and episode_id must match")

@@ -8,13 +8,14 @@ import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from database import Episode, Job, User, get_db
+from middleware.rate_limit import limiter
 
 load_dotenv()
 
@@ -165,7 +166,9 @@ async def transcribe_audio(audio_path: Path) -> dict:
 # ── Main route: POST /upload ─────────────────────────────────────────────────
 
 @router.post("/")
+@limiter.limit("10/minute")
 async def upload_episode(
+    request: Request,
     file: UploadFile = File(...),
     title: str = Form(None),
     db: Session = Depends(get_db),
@@ -238,7 +241,9 @@ class UrlUploadRequest(BaseModel):
     title: str | None = None
 
 @router.post("/url")
+@limiter.limit("10/minute")
 async def start_upload_from_url(
+    request: Request,
     body: UrlUploadRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

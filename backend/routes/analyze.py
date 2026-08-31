@@ -5,12 +5,14 @@ import os
 import uuid
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from database import Episode, GeneratedContent, Job, User, get_db
+from middleware.quotas import check_analyze_quota
+from middleware.rate_limit import limiter
 from tasks.analyze import analyze_episode_task
 
 load_dotenv()
@@ -61,7 +63,9 @@ def _mark_analysis_error(db: Session, file_id: str) -> None:
 
 
 @router.post("/", status_code=202)
-async def analyze_transcript(body: AnalyzeRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def analyze_transcript(request: Request, body: AnalyzeRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    check_analyze_quota(db, current_user.id)
     episode = db.query(Episode).filter(Episode.id == body.file_id, Episode.user_id == current_user.id).first()
     if not episode:
         raise HTTPException(status_code=404, detail="Episode not found")

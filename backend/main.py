@@ -7,9 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+
 from config import get_secret
 from auth import router as auth_router
 from database import init_db
+from middleware.rate_limit import limiter
 from routes.analyze import router as analyze_router
 from routes.calendar import router as calendar_router
 from routes.generate import router as generate_router
@@ -19,6 +23,16 @@ UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="ClipForge API", version="0.1.0")
+
+# Rate limiter setup — per-user (token) else per-IP, memory fallback if REDIS_URL missing
+app.state.limiter = limiter
+
+
+def _rate_limit_handler(request, exc):
+    return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
+
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
 
 # Create database tables on startup
 init_db()

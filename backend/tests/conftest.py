@@ -61,6 +61,39 @@ def clean_tables():
     with test_engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             conn.execute(table.delete())
+    # Reset rate limiter storage so limits don't leak across tests
+    try:
+        from middleware.rate_limit import limiter
+
+        # limits MemoryStorage exposes reset() and internal dicts
+        for attr in ("storage", "_storage"):
+            if hasattr(limiter, attr):
+                s = getattr(limiter, attr)
+                if hasattr(s, "reset"):
+                    try:
+                        s.reset()
+                    except Exception:
+                        pass
+                for inner in ("storage", "_storage", "_cache"):
+                    if hasattr(s, inner):
+                        try:
+                            getattr(s, inner).clear()
+                        except Exception:
+                            pass
+        # also handle fallback storage if enabled
+        if hasattr(limiter, "_fallback_storage") and limiter._fallback_storage is not None:
+            try:
+                limiter._fallback_storage.reset()
+            except Exception:
+                pass
+            for inner in ("storage", "_storage"):
+                if hasattr(limiter._fallback_storage, inner):
+                    try:
+                        getattr(limiter._fallback_storage, inner).clear()
+                    except Exception:
+                        pass
+    except Exception:
+        pass
     yield
 
 
