@@ -8,7 +8,7 @@ celery_app = Celery(
     "podclip_worker",
     broker=REDIS_URL,
     backend=REDIS_URL,
-    include=["worker", "tasks.analyze"]
+    include=["worker", "tasks.analyze", "tasks.generate"]
 )
 
 celery_app.conf.update(

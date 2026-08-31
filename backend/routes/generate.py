@@ -17,7 +17,12 @@ from sqlalchemy.orm import Session
 import math
 
 from auth import get_current_user
-from database import Episode, GeneratedContent, User, get_db
+from database import Episode, GeneratedContent, Job, User, get_db
+
+try:
+    from tasks.generate import generate_clip_task
+except ImportError:
+    generate_clip_task = None  # patched in tests / not available during import-time checks
 
 router = APIRouter(prefix="/generate", tags=["generate"])
 
@@ -273,54 +278,17 @@ def _owned_episode_or_404(db: Session, episode_id: str, user: User) -> Episode:
 
 # ── Route: POST /generate/clip ───────────────────────────────────────────────
 
-@router.post("/clip")
+@router.post("/clip", status_code=202)
 async def create_clip(body: ClipRequest, db: Session = Depends(_db_session), current_user: User = Depends(get_current_user)):
-    """Cut a video clip, save it to DB, and return a download URL."""
+    """Dispatch FFmpeg clip generation to Celery and return a job handle."""
     _owned_episode_or_404(db, body.episode_id, current_user)
     if body.file_id != body.episode_id:
         raise HTTPException(status_code=400, detail="file_id and episode_id must match")
-
-    try:
-        video_path = find_video_file(body.file_id)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-    clip_id = str(uuid.uuid4())[:8]
-    safe_title = sanitize_filename(body.title, "clip", max_len=30)
-    output_filename = f"clip_{safe_title}_{clip_id}.mp4"
-    output_path = _ensure_within_upload_dir(UPLOAD_DIR / output_filename)
-
-    try:
-        cut_clip(video_path, body.start_time, body.end_time, output_path)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-    # Save to DB so we can track every generated clip
-    content = GeneratedContent(
-        id=str(uuid.uuid4()),
-        episode_id=body.episode_id,
-        content_type="clip_file",
-        user_id=current_user.id,
-        title=body.title or f"Clip {clip_id}",
-        body="",
-        file_path=str(output_path),
-                content_metadata={
-            "start_time": body.start_time,
-            "end_time": body.end_time,
-            "duration": round(body.end_time - body.start_time, 1),
-            "download_url": f"/files/{output_filename}",
-        },
-    )
-    db.add(content)
+    job = Job(id=str(uuid.uuid4()), user_id=current_user.id, status="queued", progress=0)
+    db.add(job)
     db.commit()
-
-    return {
-        "success": True,
-        "clip_id": clip_id,
-        "filename": output_filename,
-        "download_url": f"/files/{output_filename}",
-        "duration": round(body.end_time - body.start_time, 1),
-    }
+    generate_clip_task.delay(body.file_id, body.episode_id, body.start_time, body.end_time, body.title, current_user.id)
+    return {"job_id": job.id, "status": "queued"}
 
 
 # ── Route: POST /generate/quote-card ────────────────────────────────────────
