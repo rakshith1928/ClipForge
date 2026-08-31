@@ -12,8 +12,9 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 from sqlalchemy.orm import Session
+import math
 
 from auth import get_current_user
 from database import Episode, GeneratedContent, User, get_db
@@ -33,15 +34,29 @@ def _db_session():
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploads"))
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
 
 # ── Request shapes ───────────────────────────────────────────────────────────
 
 class ClipRequest(BaseModel):
     file_id: str        # the unique ID from Phase 2 upload
     episode_id: str     # links to the Episode table
-    start_time: float   # start in seconds
-    end_time: float     # end in seconds
+    start_time: float = Field(ge=0)
+    end_time: float = Field(ge=0)
     title: str = ""     # optional title for filename
+
+    @validator("start_time", "end_time")
+    def no_nan_inf(cls, v):
+        if math.isnan(v) or math.isinf(v):
+            raise ValueError("must be finite number")
+        return v
+
+    @validator("end_time")
+    def end_after_start(cls, v, values):
+        if "start_time" in values and v <= values["start_time"]:
+            raise ValueError("end_time must be > start_time")
+        return v
 
 
 class QuoteCardRequest(BaseModel):
@@ -60,6 +75,12 @@ class QuoteCardRequest(BaseModel):
             raise ValueError("quote_text cannot be empty")
         if len(v) > 600:
             raise ValueError("quote_text must be 600 characters or fewer")
+        return v
+
+    @validator("bg_color", "text_color", "accent_color")
+    def valid_hex_color(cls, v):
+        if not HEX_COLOR_RE.match(v):
+            raise ValueError("must be hex color like #0f0f0f")
         return v
 
 
