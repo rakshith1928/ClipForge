@@ -102,7 +102,7 @@ function GenerateButton({
       <a
         href={`${API_BASE}${downloadUrl}`}
         download
-        className="inline-block premium-gradient-bg glow-shadow text-white text-xs font-bold px-4 py-2 rounded-full transition-colors active:scale-95"
+        className="inline-block bg-primary hover:bg-primary/90 shadow-sm text-white text-xs font-bold px-4 py-2 rounded-full transition-colors active:scale-95"
       >
         ⬇️ Download
       </a>
@@ -392,7 +392,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           <div className="flex items-center gap-3 mb-4">
             <span className="px-3 py-1 bg-primary/10 rounded-full text-[10px] font-bold text-primary uppercase tracking-wider">AI Analysis Complete</span>
           </div>
-          <h1 className="text-[40px] font-bold leading-[1.1] tracking-tight text-gradient mb-4">
+          <h1 className="text-[40px] font-bold leading-[1.1] tracking-tight text-stone-900 mb-4">
             {episodeMetadata.title}
           </h1>
           <p className="text-[#594139] text-[18px] max-w-2xl leading-relaxed">
@@ -402,7 +402,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           <div className="mt-6">
             <button
               onClick={() => router.push(`/calendar?episode=${params.id}`)}
-              className="premium-gradient-bg glow-shadow text-white text-sm font-bold px-5 py-3 rounded-full transition-transform active:scale-95 inline-flex items-center gap-2"
+              className="bg-primary hover:bg-primary/90 shadow-sm text-white text-sm font-bold px-5 py-3 rounded-full transition-transform active:scale-95 inline-flex items-center gap-2"
             >
               🗓️ Plan 30-Day Schedule
             </button>
@@ -447,7 +447,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           {activeTab === TAB_NAMES.QUOTES && filteredQuotes.length > 0 && (
             <div className="space-y-4">
               {filteredQuotes.map((quote, i) => (
-                <div key={i} className="glass-surface deep-boxed rounded-3xl p-6 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500 ease-out">
+                <div key={i} className="bg-white border border-stone-100 shadow-sm rounded-3xl p-6 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500 ease-out">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <p className="text-[#261911] font-bold leading-relaxed mb-3 text-lg">"{quote.text}"</p>
@@ -491,7 +491,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
             <div className="space-y-6">
               {/* Twitter Thread */}
               {fullAnalysis.twitter_thread && fullAnalysis.twitter_thread.length > 0 && (
-                <div className="glass-surface deep-boxed rounded-3xl p-6">
+                <div className="bg-white border border-stone-100 shadow-sm rounded-3xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-[#261911]">𝕏 Twitter Thread</h3>
                     <CopyButton text={fullAnalysis.twitter_thread.join("\n\n")} />
@@ -509,7 +509,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
 
               {/* LinkedIn Post */}
               {fullAnalysis.linkedin_post && (
-                <div className="glass-surface deep-boxed rounded-3xl p-6">
+                <div className="bg-white border border-stone-100 shadow-sm rounded-3xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-[#261911]">💼 LinkedIn Post</h3>
                     <CopyButton text={fullAnalysis.linkedin_post} />
@@ -520,7 +520,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
 
               {/* Instagram Caption */}
               {fullAnalysis.instagram_caption && (
-                <div className="glass-surface deep-boxed rounded-3xl p-6">
+                <div className="bg-white border border-stone-100 shadow-sm rounded-3xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-[#261911]">📸 Instagram Caption</h3>
                     <CopyButton text={fullAnalysis.instagram_caption} />
@@ -531,7 +531,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
 
               {/* Controversial Moments */}
               {fullAnalysis.controversial_moments && fullAnalysis.controversial_moments.length > 0 && (
-                <div className="glass-surface deep-boxed rounded-3xl p-6">
+                <div className="bg-white border border-stone-100 shadow-sm rounded-3xl p-6">
                   <h3 className="font-bold text-[#261911] mb-4">🔥 Controversial Moments</h3>
                   <div className="space-y-4">
                     {fullAnalysis.controversial_moments.map((m, i) => (
@@ -554,7 +554,7 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
                 { label: "💡 Key Insights", items: fullAnalysis.knowledge_extracted.key_insights, color: "#ff6b35", bg: "bg-[#ff6b35]/5" },
                 { label: "✅ Actionable Tips", items: fullAnalysis.knowledge_extracted.actionable_tips, color: "#594139", bg: "bg-surface-container" },
               ].map(({ label, items, color, bg }) => (
-                <div key={label} className={`glass-surface deep-boxed rounded-3xl p-6 ${bg}`}>
+                <div key={label} className={`bg-white border border-stone-100 shadow-sm rounded-3xl p-6 ${bg}`}>
                   <h3 className="font-bold mb-5 font-headline" style={{ color: color }}>{label}</h3>
                   <ul className="space-y-4">
                     {items && items.map((item, i) => (
@@ -573,9 +573,9 @@ export default function AnalyzeIDPage({ params }: { params: { id: string } }) {
           {activeTab === TAB_NAMES.SPEAKERS && fullAnalysis?.speaker_highlights && (
             <div className="space-y-4">
               {fullAnalysis.speaker_highlights.map((s, i) => (
-                <div key={i} className="glass-surface deep-boxed rounded-3xl p-6">
+                <div key={i} className="bg-white border border-stone-100 shadow-sm rounded-3xl p-6">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white uppercase premium-gradient-bg glow-shadow">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white uppercase bg-primary hover:bg-primary/90 shadow-sm">
                       {s.speaker.replace("Speaker ", "").charAt(0)}
                     </div>
                     <div>

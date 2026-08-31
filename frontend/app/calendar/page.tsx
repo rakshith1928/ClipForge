@@ -67,7 +67,7 @@ function groupByDate(posts: Post[]): Record<string, Post[]> {
 const Toast = ({ message, visible }: { message: string, visible: boolean }) => (
   <div
     className={`fixed bottom-6 right-6 transition-all duration-300 transform ${visible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"
-      } bg-[#18181b] border border-[#27272a] shadow-2xl rounded-xl px-5 py-3.5 flex items-center gap-3 z-50`}
+      } bg-white border border-stone-200 shadow-2xl rounded-xl px-5 py-3.5 flex items-center gap-3 z-50`}
   >
     <span className="text-[#10b981] text-lg">✅</span>
     <span className="text-white text-sm font-medium">{message}</span>
@@ -85,7 +85,7 @@ const TimelineSkeleton = () => (
         </div>
         <div className="space-y-3">
           {[1, 2].map((item) => (
-            <div key={item} className="bg-[#18181b] border border-[#27272a] rounded-xl p-5 flex items-start gap-4 h-24">
+            <div key={item} className="bg-white border border-stone-200 rounded-xl p-5 flex items-start gap-4 h-24">
               <div className="w-10 h-10 bg-[#27272a] rounded-full shrink-0"></div>
               <div className="flex-1 space-y-3">
                 <div className="flex gap-2">
@@ -205,21 +205,21 @@ export default function CalendarPage() {
 
   return (
     <ProtectedRoute>
-      <main className="min-h-screen bg-[#09090b] text-[#e5e1e4] font-sans selection:bg-[#7c3aed]/30 relative pb-20">
+      <main className="min-h-screen bg-stone-50 text-stone-700 font-sans selection:bg-[#7c3aed]/30 relative pb-20">
 
         {/* Toast Overlay */}
         <Toast message={toastMsg} visible={toastVis} />
 
         {/* Header */}
-        <div className="border-b border-[#27272a] px-5 sm:px-8 py-5 sticky top-0 bg-[#09090b]/80 backdrop-blur-md z-40">
+        <div className="border-b border-stone-200 px-5 sm:px-8 py-5 sticky top-0 bg-stone-50/80 backdrop-blur-md z-40">
           <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="font-bold text-xl tracking-tight text-white">Content Calendar</h1>
-              <p className="text-[#a1a1aa] text-sm mt-0.5">Your 30-day auto-drip engine</p>
+              <h1 className="font-bold text-xl tracking-tight text-stone-900">Content Calendar</h1>
+              <p className="text-stone-500 text-sm mt-0.5">Your 30-day auto-drip engine</p>
             </div>
             <button
               onClick={fetchEpisodes}
-              className="w-full sm:w-auto bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all"
+              className="w-full sm:w-auto bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               🔄 Refresh Database
             </button>
@@ -229,15 +229,15 @@ export default function CalendarPage() {
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-8">
 
           {/* Global Controls */}
-          <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 sm:p-6 mb-8 hover:border-[#353437] transition-colors">
+          <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 mb-8 hover:border-[#353437] transition-colors">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* Episode selector */}
               <div>
-                <label className="text-xs text-[#a1a1aa] uppercase tracking-widest block mb-2 font-semibold">Episode</label>
+                <label className="text-xs text-stone-500 uppercase tracking-widest block mb-2 font-semibold">Episode</label>
                 <select
                   value={selectedEpisode}
                   onChange={e => setSelectedEpisode(e.target.value)}
-                  className="w-full bg-[#0e0e10] border border-[#27272a] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#7c3aed] transition-colors"
+                  className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#7c3aed] transition-colors"
                 >
                   {episodes.length === 0 && (
                     <option value="">No episodes saved in DB</option>
@@ -252,12 +252,12 @@ export default function CalendarPage() {
 
               {/* Start date */}
               <div>
-                <label className="text-xs text-[#a1a1aa] uppercase tracking-widest block mb-2 font-semibold">Start Date</label>
+                <label className="text-xs text-stone-500 uppercase tracking-widest block mb-2 font-semibold">Start Date</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
-                  className="w-full bg-[#0e0e10] border border-[#27272a] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#7c3aed] transition-colors"
+                  className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#7c3aed] transition-colors"
                   style={{ colorScheme: "dark" }}
                 />
               </div>
@@ -284,11 +284,11 @@ export default function CalendarPage() {
                 { label: "Posted", value: posts.filter(p => p.status === "posted").length, isSuccess: true },
                 { label: "Days Covered", value: Object.keys(grouped).length },
               ].map(stat => (
-                <div key={stat.label} className="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 flex flex-col items-center justify-center">
+                <div key={stat.label} className="bg-white border border-stone-200 rounded-2xl p-5 flex flex-col items-center justify-center">
                   <p className={`text-3xl font-bold ${stat.isSuccess ? 'text-[#10b981]' : 'text-[#7c3aed]'}`}>
                     {stat.value}
                   </p>
-                  <p className="text-[#a1a1aa] text-xs font-semibold uppercase tracking-wider mt-2">{stat.label}</p>
+                  <p className="text-stone-500 text-xs font-semibold uppercase tracking-wider mt-2">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -298,10 +298,10 @@ export default function CalendarPage() {
           {status === "loading" && <TimelineSkeleton />}
 
           {status === "idle" && (
-            <div className="text-center py-20 bg-[#18181b] border border-[#27272a] rounded-2xl">
+            <div className="text-center py-20 bg-white border border-stone-200 rounded-2xl">
               <p className="text-5xl mb-5 opacity-80">🗓️</p>
               <p className="text-white font-semibold text-lg mb-2">No schedule generated yet</p>
-              <p className="text-[#a1a1aa] text-sm max-w-sm mx-auto">Select an episode from your database above and click "Generate 30-Day Plan" to launch the engine.</p>
+              <p className="text-stone-500 text-sm max-w-sm mx-auto">Select an episode from your database above and click "Generate 30-Day Plan" to launch the engine.</p>
             </div>
           )}
 
@@ -313,7 +313,7 @@ export default function CalendarPage() {
                   <div className="flex items-center gap-4 mb-4">
                     <p className="text-sm font-bold text-white uppercase tracking-wider">{date}</p>
                     <div className="flex-1 h-px bg-[#27272a]" />
-                    <span className="text-xs font-semibold text-[#a1a1aa] bg-[#27272a]/50 px-2.5 py-1 rounded-full">
+                    <span className="text-xs font-semibold text-stone-500 bg-[#27272a]/50 px-2.5 py-1 rounded-full">
                       {dayPosts.length} post{dayPosts.length > 1 ? "s" : ""}
                     </span>
                   </div>
@@ -323,17 +323,17 @@ export default function CalendarPage() {
                     {dayPosts.map(post => (
                       <div
                         key={post.id}
-                        className="bg-[#18181b] border border-[#27272a] hover:border-[#4a4455] rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 transition-colors"
+                        className="bg-white border border-stone-200 hover:border-[#4a4455] rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 transition-colors"
                       >
                         {/* Platform icon */}
-                        <div className="text-2xl w-12 h-12 bg-[#0e0e10] border border-[#27272a] rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                        <div className="text-2xl w-12 h-12 bg-white border border-stone-200 rounded-full flex items-center justify-center shrink-0 shadow-sm">
                           {PLATFORM_ICONS[post.platform] || "📢"}
                         </div>
 
                         {/* Content */}
                         <div className="flex-1 min-w-0 w-full">
                           <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${CONTENT_COLORS[post.content_type] || "bg-[#27272a] text-[#a1a1aa] border-[#353437]"}`}>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${CONTENT_COLORS[post.content_type] || "bg-[#27272a] text-stone-500 border-[#353437]"}`}>
                               {post.content_type.replace("_", " ")}
                             </span>
                             <span className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${STATUS_COLORS[post.status]}`}>
@@ -341,7 +341,7 @@ export default function CalendarPage() {
                               {post.status}
                             </span>
                           </div>
-                          <p className="text-[#e5e1e4] text-sm leading-relaxed whitespace-pre-wrap line-clamp-3 hover:line-clamp-none transition-all">
+                          <p className="text-stone-700 text-sm leading-relaxed whitespace-pre-wrap line-clamp-3 hover:line-clamp-none transition-all">
                             {post.content_body}
                           </p>
                         </div>
@@ -358,7 +358,7 @@ export default function CalendarPage() {
                               </button>
                               <button
                                 onClick={() => updateStatus(post.id, "skipped")}
-                                className="text-xs font-semibold bg-[#27272a]/50 hover:bg-[#353437] text-[#a1a1aa] px-4 py-2 rounded-lg transition-colors flex-1 sm:flex-none"
+                                className="text-xs font-semibold bg-[#27272a]/50 hover:bg-[#353437] text-stone-500 px-4 py-2 rounded-lg transition-colors flex-1 sm:flex-none"
                               >
                                 Skip
                               </button>

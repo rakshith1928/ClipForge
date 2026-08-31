@@ -181,39 +181,8 @@ function UploadPageInner() {
 
   return (
     <ProtectedRoute>
-      <main className="relative min-h-screen pb-20 bg-[#fff8f5] overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+      <main className="min-h-screen pb-20 bg-stone-50">
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-          
-          .font-epilogue { font-family: 'Epilogue', sans-serif; }
-          .font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
-          
-          .glass-surface {
-              background: rgba(255, 255, 255, 0.4);
-              backdrop-filter: blur(24px);
-              -webkit-backdrop-filter: blur(24px);
-              border: 1px solid rgba(255, 255, 255, 0.6);
-              box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.4);
-          }
-          .organic-wave {
-              position: absolute;
-              width: 100%;
-              height: 400px;
-              z-index: 0;
-              opacity: 0.1;
-              animation: slowFloat 20s ease-in-out infinite alternate;
-          }
-          @keyframes slowFloat {
-              0% { transform: translate(0, 0) scale(1); }
-              50% { transform: translate(20px, 15px) scale(1.05); }
-              100% { transform: translate(-10px, 30px) scale(1); }
-          }
-          .ambient-glow {
-              box-shadow: 
-                  0 4px 6px -1px rgba(255, 107, 53, 0.05), 
-                  0 10px 15px -3px rgba(255, 107, 53, 0.08), 
-                  0 20px 40px -4px rgba(255, 107, 53, 0.06);
-          }
           @keyframes popUp {
               from { transform: scale(0.9); opacity: 0; }
               to { transform: scale(1); opacity: 1; }
@@ -222,27 +191,21 @@ function UploadPageInner() {
               opacity: 0;
               animation: popUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
           }
-          .scrollbar-hide::-webkit-scrollbar {
-              display: none;
+          @media (prefers-reduced-motion: reduce) {
+            .animate-pop-up { animation: none; opacity: 1; }
           }
-          .scrollbar-hide {
-              -ms-overflow-style: none;
-              scrollbar-width: none;
-          }
+          .scrollbar-hide::-webkit-scrollbar { display: none; }
+          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         `}</style>
-
-        {/* Organic Background Waves */}
-        <div className="organic-wave top-0 left-0 bg-linear-to-br from-primary-container/30 to-transparent blur-[120px]"></div>
-        <div className="organic-wave bottom-0 right-0 bg-linear-to-tl from-secondary-container/30 to-transparent blur-[120px]" style={{ animationDelay: '-5s' }}></div>
 
         <div className="relative z-10 max-w-[800px] mx-auto px-6 pt-20 flex flex-col gap-6">
 
           {/* Header Section */}
           <header className="text-center mb-6 animate-pop-up" style={{ animationDelay: '0.1s' }}>
-            <h1 className="text-4xl md:text-[64px] leading-[1.1] font-bold text-[#261911] mb-3 font-epilogue tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-stone-900 mb-3">
               {prefilledUrl ? "Processing Video" : "Upload Your Episode"}
             </h1>
-            <p className="text-lg text-on-surface-variant max-w-xl mx-auto font-jakarta">
+            <p className="text-stone-600 max-w-xl mx-auto">
               {prefilledUrl
                 ? "Downloading and transcribing your video — sit tight while we extract the viral moments."
                 : "Transform your long-form content into viral clips with AI-powered analysis."}
@@ -259,7 +222,7 @@ function UploadPageInner() {
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDrop}
                   onClick={() => document.getElementById("fileInput")?.click()}
-                  className={`glass-surface p-12 rounded-xl border-2 border-dashed text-center transition-all cursor-pointer group ambient-glow ${isDragging ? "border-primary-container" : "border-orange-500/10 hover:border-primary-container/60"
+                  className={`bg-white border border-stone-100 shadow-sm p-12 rounded-xl border-2 border-dashed text-center transition-all cursor-pointer group ${isDragging ? "border-primary-container" : "border-orange-500/10 hover:border-primary-container/60"
                     }`}
                 >
                   <input
@@ -274,13 +237,13 @@ function UploadPageInner() {
                       {file ? "video_file" : "cloud_upload"}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-bold text-[#261911] mb-1 font-jakarta">
+                  <h3 className="text-2xl font-bold text-[#261911] mb-1">
                     {file ? file.name : "Drag and drop your file"}
                   </h3>
-                  <p className="text-sm text-on-surface-variant mb-6 font-jakarta">
+                  <p className="text-sm text-on-surface-variant mb-6">
                     {file ? `${(file.size / 1024 / 1024).toFixed(1)} MB Ready` : "Supports MP4, MOV, and AVI up to 2GB"}
                   </p>
-                  <button className="bg-primary-container text-on-primary-container px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 transition-all shadow-lg shadow-orange-500/20 font-jakarta pointer-events-none">
+                  <button className="bg-primary-container text-on-primary-container px-6 py-2.5 rounded-full font-bold text-sm hover:scale-105 transition-all shadow-lg shadow-orange-500/20 pointer-events-none">
                     {file ? "Change File" : "Select Video File"}
                   </button>
                 </div>
@@ -288,11 +251,11 @@ function UploadPageInner() {
 
               {/* 2. Episode Title Box and Start Processing Button */}
               <section className="animate-pop-up" style={{ animationDelay: '0.3s' }}>
-                <div className={`glass-surface p-6 rounded-[2rem] ambient-glow border-orange-500/10 transition-all duration-300 ${file ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
+                <div className={`bg-white border border-stone-100 shadow-sm p-6 rounded-[2rem] border-orange-500/10 transition-all duration-300 ${file ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
                   <div className="mb-6">
-                    <label className="block text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-1 ml-1 font-jakarta">Episode Title</label>
+                    <label className="block text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-1 ml-1">Episode Title</label>
                     <input
-                      className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-container focus:border-transparent outline-none text-[#261911] font-jakarta"
+                      className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-container focus:border-transparent outline-none text-[#261911]"
                       placeholder="e.g. The Future of Content Creation Ep. 42"
                       type="text"
                       value={title}
@@ -302,7 +265,7 @@ function UploadPageInner() {
                   <button
                     onClick={handleFileSubmit}
                     disabled={!file}
-                    className="w-full bg-primary-container text-on-primary-container py-4 rounded-full font-bold text-lg hover:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 font-jakarta"
+                    className="w-full bg-primary-container text-on-primary-container py-4 rounded-full font-bold text-lg hover:scale-[0.98] transition-transform shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2"
                   >
                     Start Processing
                     <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
@@ -315,17 +278,17 @@ function UploadPageInner() {
           {/* PROCESSING */}
           {isProcessing && (
             <section className="animate-pop-up" style={{ animationDelay: '0.4s' }}>
-              <div className="glass-surface p-6 rounded-[2rem] space-y-6 border border-orange-500/10 ambient-glow">
+              <div className="bg-white border border-stone-100 shadow-sm p-6 rounded-[2rem] space-y-6 border border-orange-500/10">
                 <div className="flex items-center gap-6">
                   <div className="w-12 h-12 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary-container shrink-0">
                     <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 0" }}>graphic_eq</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1">
-                      <h4 className="font-bold text-[#261911] truncate font-jakarta">
+                      <h4 className="font-bold text-[#261911] truncate">
                         {prefilledUrl ? prefilledUrl : (file?.name || "Processing...")}
                       </h4>
-                      <span className="text-xs text-on-surface-variant font-jakarta">
+                      <span className="text-xs text-on-surface-variant">
                         {prefilledUrl ? "URL" : file ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : ""}
                       </span>
                     </div>
@@ -333,10 +296,10 @@ function UploadPageInner() {
                       <div className="h-full bg-primary-container rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
                     </div>
                     <div className="flex justify-between items-center mt-1">
-                      <span className="text-xs text-[#ab3500] font-bold font-jakarta">
+                      <span className="text-xs text-[#ab3500] font-bold">
                         {status === "uploading" ? `Uploading (${progress}%)` : `Transcribing (${progress}%)`}
                       </span>
-                      <span className="text-xs text-on-surface-variant font-jakarta">
+                      <span className="text-xs text-on-surface-variant">
                         {status === "transcribing" ? "Analyzing audio..." : "Processing request..."}
                       </span>
                     </div>
@@ -349,10 +312,10 @@ function UploadPageInner() {
                     <span className="material-symbols-outlined text-2xl text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
                   </div>
                   <div>
-                    <h4 className="font-bold text-[#261911] font-jakarta">
+                    <h4 className="font-bold text-[#261911]">
                       {status === "uploading" ? (prefilledUrl ? "Downloading Video..." : "Uploading Stream...") : "Transcribing with AI..."}
                     </h4>
-                    <p className="text-xs text-on-surface-variant font-jakarta">
+                    <p className="text-xs text-on-surface-variant">
                       {status === "transcribing" ? "Analyzing acoustic hooks & speaker patterns" : "Securely transferring data..."}
                     </p>
                   </div>
@@ -364,16 +327,16 @@ function UploadPageInner() {
           {/* SUCCESS */}
           {status === "done" && (
             <section className="animate-pop-up" style={{ animationDelay: '0.5s' }}>
-              <div className="glass-surface p-8 sm:p-12 rounded-[2rem] flex flex-col ambient-glow min-h-[500px]">
+              <div className="bg-white border border-stone-100 shadow-sm p-8 sm:p-12 rounded-[2rem] flex flex-col min-h-[500px]">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
                   <div>
                     <div className="flex items-center gap-1 text-emerald-600 font-bold mb-1">
                       <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                      <span className="text-sm uppercase tracking-widest font-jakarta">Analysis Ready</span>
+                      <span className="text-sm uppercase tracking-widest">Analysis Ready</span>
                     </div>
-                    <h3 className="text-3xl sm:text-4xl font-bold text-[#261911] leading-tight font-epilogue">Viral Quotes & Highlights</h3>
+                    <h3 className="text-3xl sm:text-4xl font-bold text-[#261911] leading-tight">Viral Quotes & Highlights</h3>
                   </div>
-                  <span className="px-4 py-2 bg-orange-50 text-orange-600 rounded-full text-sm font-bold flex items-center gap-1 border border-orange-100 shrink-0 font-jakarta">
+                  <span className="px-4 py-2 bg-orange-50 text-orange-600 rounded-full text-sm font-bold flex items-center gap-1 border border-orange-100 shrink-0">
                     <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
                     AI Engine Active
                   </span>
@@ -385,7 +348,7 @@ function UploadPageInner() {
                       <span className="font-mono text-xs font-bold text-[#ab3500] px-2 py-1 bg-[#ab3500]/5 rounded">00:00</span>
                       <span className="text-[10px] uppercase font-black tracking-widest text-on-surface-container bg-surface-container-high px-2 py-1 rounded">Transcript Snippet</span>
                     </div>
-                    <p className="text-[#261911] font-medium leading-relaxed italic group-hover:text-[#ab3500] transition-colors font-jakarta">
+                    <p className="text-[#261911] font-medium leading-relaxed italic group-hover:text-[#ab3500] transition-colors">
                       "{transcript.length > 250 ? transcript.slice(0, 250) + "..." : transcript}"
                     </p>
                   </div>
@@ -394,7 +357,7 @@ function UploadPageInner() {
                 <div className="mt-8">
                   <button
                     onClick={() => router.push(`/analyze/${fileId}`)}
-                    className="w-full bg-primary-container text-on-primary-container py-5 rounded-full font-bold text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 font-jakarta"
+                    className="w-full bg-primary-container text-on-primary-container py-5 rounded-full font-bold text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2"
                   >
                     Find Viral Clips & Quotes
                     <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
@@ -407,19 +370,19 @@ function UploadPageInner() {
           {/* ERROR */}
           {status === "error" && (
             <section className="animate-pop-up" style={{ animationDelay: '0.1s' }}>
-              <div className="glass-surface p-12 rounded-xl text-center border border-red-500/20 ambient-glow">
+              <div className="bg-white border border-stone-100 shadow-sm p-12 rounded-xl text-center border border-red-500/20">
                 <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <span className="material-symbols-outlined text-red-600 text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
                 </div>
-                <h3 className="text-2xl font-bold text-red-600 mb-2 font-epilogue">
+                <h3 className="text-2xl font-bold text-red-600 mb-2">
                   {prefilledUrl ? "Download Failed" : "Upload Exception"}
                 </h3>
-                <p className="text-on-surface-container text-sm mb-8 max-w-sm mx-auto p-4 bg-white/50 rounded-xl font-mono border border-red-100 font-jakarta">
+                <p className="text-on-surface-container text-sm mb-8 max-w-sm mx-auto p-4 bg-white/50 rounded-xl font-mono border border-red-100">
                   {error}
                 </p>
                 <button
                   onClick={resetState}
-                  className="bg-primary-container text-on-primary-container px-8 py-3.5 rounded-full font-bold transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center mx-auto gap-2 font-jakarta hover:scale-105"
+                  className="bg-primary-container text-on-primary-container px-8 py-3.5 rounded-full font-bold transition-all shadow-lg shadow-orange-500/20 flex items-center justify-center mx-auto gap-2 hover:scale-105"
                 >
                   {prefilledUrl ? "Go Back" : "Try Again"}
                 </button>
