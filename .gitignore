@@ -44,3 +44,7 @@ stitch_prompt.md*
 
 # ── AI Agents / Skills ──
 .agents/
+
+# Superpowers scratch (never commit)
+.superpowers/
+
