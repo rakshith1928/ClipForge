@@ -53,9 +53,18 @@ def test_owner_can_read_and_analyze(auth_client, db_session, monkeypatch):
     _seed_episode(db_session, "ep-mine", AUTH_USER_ID)
     assert auth_client.get("/analyze/ep-mine").status_code == 200
 
+    from unittest.mock import patch
+    with patch("routes.analyze.analyze_episode_task.delay") as mock_delay:
+        mock_delay.return_value.id = "celery-owner"
+        resp = auth_client.post("/analyze/", json={"file_id": "ep-mine"})
+        assert resp.status_code == 202
+        assert "job_id" in resp.json()
+        mock_delay.assert_called_once()
+
+    # Run task synchronously to verify content creation
     _mock_groq(monkeypatch)
-    resp = auth_client.post("/analyze/", json={"file_id": "ep-mine"})
-    assert resp.status_code == 200
+    from tasks.analyze import analyze_episode_task
+    analyze_episode_task.run("ep-mine", AUTH_USER_ID)
 
     db_session.expire_all()
     contents = db_session.query(GeneratedContent).filter(
