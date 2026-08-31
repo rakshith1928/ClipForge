@@ -26,6 +26,8 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 
 
+MAX_UPLOAD_SIZE = 2 * 1024 * 1024 * 1024  # 2GB
+
 # ── Helper: save the uploaded file to disk ──────────────────────────────────
 
 async def save_upload(file: UploadFile) -> Path:
@@ -36,8 +38,14 @@ async def save_upload(file: UploadFile) -> Path:
 
     import aiofiles
 
+    total = 0
     async with aiofiles.open(file_path, "wb") as out:
         while chunk := await file.read(1024 * 1024):
+            total += len(chunk)
+            if total > MAX_UPLOAD_SIZE:
+                await out.close()
+                file_path.unlink(missing_ok=True)
+                raise HTTPException(status_code=413, detail="File exceeds 2GB limit")
             await out.write(chunk)
 
     return file_path
@@ -90,6 +98,14 @@ async def transcribe_audio(audio_path: Path) -> dict:
     """Send audio to Deepgram and return transcript, words, paragraphs, duration."""
     if not DEEPGRAM_API_KEY:
         raise RuntimeError("DEEPGRAM_API_KEY not set in .env")
+
+    # D4 OOM guard: fail early before loading 500MB+ audio into memory
+    if audio_path.stat().st_size > 500 * 1024 * 1024:
+        try:
+            audio_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise HTTPException(status_code=413, detail="Audio too large")
 
     from deepgram import DeepgramClient, PrerecordedOptions
 
@@ -211,6 +227,8 @@ def _download_with_ytdlp(url: str, out_path: str) -> None:
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
+        "max_filesize": 2 * 1024 * 1024 * 1024,  # 2GB
+        "socket_timeout": 30,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
@@ -229,6 +247,8 @@ async def start_upload_from_url(
     Receives URL, fetches metadata to enforce limits, immediately creates a Job ticket in DB, 
     passes work to Celery, and returns the ticket ID.
     """
+    from utils.url_validator import validate_upload_url
+    validate_upload_url(body.url)
     # 1. Fetch metadata to check duration limit (runs in threadpool to prevent blocking)
     try:
         loop = asyncio.get_event_loop()

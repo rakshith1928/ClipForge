@@ -12,8 +12,9 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.orm import Session
+import math
 
 from auth import get_current_user
 from database import Episode, GeneratedContent, User, get_db
@@ -33,15 +34,30 @@ def _db_session():
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploads"))
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
 
 # ── Request shapes ───────────────────────────────────────────────────────────
 
 class ClipRequest(BaseModel):
     file_id: str        # the unique ID from Phase 2 upload
     episode_id: str     # links to the Episode table
-    start_time: float   # start in seconds
-    end_time: float     # end in seconds
+    start_time: float = Field(ge=0)
+    end_time: float = Field(ge=0)
     title: str = ""     # optional title for filename
+
+    @field_validator("start_time", "end_time", mode="after")
+    @classmethod
+    def no_nan_inf(cls, v: float) -> float:
+        if math.isnan(v) or math.isinf(v):
+            raise ValueError("must be finite number")
+        return v
+
+    @model_validator(mode="after")
+    def end_after_start(self):
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time must be > start_time")
+        return self
 
 
 class QuoteCardRequest(BaseModel):
@@ -54,12 +70,20 @@ class QuoteCardRequest(BaseModel):
     text_color: str = "#ffffff"
     accent_color: str = "#7c3aed"
 
-    @validator("quote_text")
-    def quote_text_not_empty(cls, v):
+    @field_validator("quote_text", mode="after")
+    @classmethod
+    def quote_text_not_empty(cls, v: str) -> str:
         if not v or not v.strip():
             raise ValueError("quote_text cannot be empty")
         if len(v) > 600:
             raise ValueError("quote_text must be 600 characters or fewer")
+        return v
+
+    @field_validator("bg_color", "text_color", "accent_color", mode="after")
+    @classmethod
+    def valid_hex_color(cls, v: str) -> str:
+        if not HEX_COLOR_RE.match(v):
+            raise ValueError("must be hex color like #0f0f0f")
         return v
 
 
