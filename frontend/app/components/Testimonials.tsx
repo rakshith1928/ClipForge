@@ -6,6 +6,10 @@ export const Testimonials = () => {
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      sectionRef.current?.querySelectorAll('.reveal').forEach((el) => el.classList.add('active'));
+      return;
+    }
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -20,63 +24,63 @@ export const Testimonials = () => {
   }, []);
 
   return (
-    <section id="testimonials" className="py-xl bg-surface-container-low overflow-hidden" ref={sectionRef}>
+    <section id="testimonials" className="py-20 bg-stone-50" ref={sectionRef} aria-labelledby="testimonials-heading">
       <div className="max-w-7xl mx-auto px-8">
-        <h2 className="font-headline-lg text-headline-lg text-center mb-16 reveal">
+        <h2 id="testimonials-heading" className="font-bold text-3xl text-stone-900 text-center mb-12 reveal">
           Loved by creators worldwide
         </h2>
-        <div className="flex flex-wrap gap-8 justify-center">
-
+        <div className="flex flex-wrap gap-6 justify-center">
           {/* Testimonial 1 */}
-          <div
-            className="glass-surface deep-boxed p-10 rounded-lg max-w-sm reveal"
+          <figure
+            className="bg-white border border-stone-100 shadow-sm p-8 rounded-2xl max-w-sm reveal"
             style={{ transitionDelay: '100ms' }}
           >
-            <div className="flex gap-1 text-orange-500 mb-4">
-              {[1,2,3,4,5].map((s) => (
-                <span key={s} className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+            <div className="flex gap-1 text-orange-500 mb-4" aria-label="5 out of 5 stars">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <span key={s} className="material-symbols-outlined text-[18px]" aria-hidden="true" style={{ fontVariationSettings: "'FILL' 1" }}>
                   star
                 </span>
               ))}
             </div>
-            <p className="text-body-md italic mb-8 font-medium leading-relaxed">
-              &ldquo;ClipForge literally saved me 20 hours a week. I just drop my podcast link and get 15
-              viral-ready clips in minutes. It&apos;s magic.&rdquo;
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary-fixed shadow-inner" />
-              <div>
-                <p className="font-black">Sarah Jenkins</p>
-                <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider">The Modern Creative</p>
+            <blockquote className="text-sm text-stone-700 leading-relaxed mb-6">
+              &ldquo;ClipForge saved me 20 hours a week. I drop my podcast link and get 15 viral-ready clips in minutes. It&apos;s magic.&rdquo;
+            </blockquote>
+            <figcaption className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-bold text-orange-700" aria-hidden="true">
+                SJ
               </div>
-            </div>
-          </div>
+              <div>
+                <p className="text-sm font-bold text-stone-900">Sarah Jenkins</p>
+                <p className="text-xs text-stone-500">The Modern Creative</p>
+              </div>
+            </figcaption>
+          </figure>
 
           {/* Testimonial 2 */}
-          <div
-            className="glass-surface deep-boxed p-10 rounded-lg max-w-sm reveal"
+          <figure
+            className="bg-white border border-stone-100 shadow-sm p-8 rounded-2xl max-w-sm reveal"
             style={{ transitionDelay: '200ms' }}
           >
-            <div className="flex gap-1 text-orange-500 mb-4">
-              {[1,2,3,4,5].map((s) => (
-                <span key={s} className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+            <div className="flex gap-1 text-orange-500 mb-4" aria-label="5 out of 5 stars">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <span key={s} className="material-symbols-outlined text-[18px]" aria-hidden="true" style={{ fontVariationSettings: "'FILL' 1" }}>
                   star
                 </span>
               ))}
             </div>
-            <p className="text-body-md italic mb-8 font-medium leading-relaxed">
-              &ldquo;The AI actually understands context. It doesn&apos;t just cut randomly; it finds the
-              actual punchlines and hooks. Incredible tool.&rdquo;
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-secondary-fixed shadow-inner" />
-              <div>
-                <p className="font-black">David Chen</p>
-                <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider">Tech Reviewer @ ChenVlog</p>
+            <blockquote className="text-sm text-stone-700 leading-relaxed mb-6">
+              &ldquo;The AI understands context. It doesn&apos;t cut randomly — it finds the punchlines and hooks. Incredible.&rdquo;
+            </blockquote>
+            <figcaption className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center text-sm font-bold text-stone-600" aria-hidden="true">
+                DC
               </div>
-            </div>
-          </div>
-
+              <div>
+                <p className="text-sm font-bold text-stone-900">David Chen</p>
+                <p className="text-xs text-stone-500">Tech Reviewer @ ChenVlog</p>
+              </div>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +29,19 @@ const clips = [
   },
 ];
 
+// Keep allowlist in sync with backend/utils/url_validator.py
+const ALLOWED_HOSTS = [
+  'youtube.com',
+  'www.youtube.com',
+  'm.youtube.com',
+  'youtu.be',
+  'www.youtu.be',
+  'youtube-nocookie.com',
+  'www.youtube-nocookie.com',
+  'vimeo.com',
+  'www.vimeo.com',
+];
+
 export const Hero = () => {
   const { isLoggedIn } = useAuth();
   const router = useRouter();
@@ -36,10 +50,15 @@ export const Hero = () => {
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    // Staggered hero text fade-in after mount
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      headingRef.current?.querySelectorAll('.hero-text').forEach((el) => {
+        el.classList.remove('opacity-0', 'translate-y-4');
+      });
+      return;
+    }
     const els = headingRef.current?.querySelectorAll('.hero-text');
     const t = setTimeout(() => {
-      els?.forEach(el => el.classList.remove('opacity-0', 'translate-y-4'));
+      els?.forEach((el) => el.classList.remove('opacity-0', 'translate-y-4'));
     }, 200);
     return () => clearTimeout(t);
   }, []);
@@ -52,10 +71,10 @@ export const Hero = () => {
     }
     try {
       const parsed = new URL(trimmed);
-      const allowed = ['youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv', 'www.youtube.com'];
-      const isAllowed = allowed.some(h => parsed.hostname.endsWith(h));
+      const hostLower = parsed.hostname.toLowerCase();
+      const isAllowed = ALLOWED_HOSTS.some((h) => hostLower === h || hostLower.endsWith('.' + h));
       if (!isAllowed) {
-        setUrlError('Only YouTube, Vimeo and Twitch URLs are supported.');
+        setUrlError('Only YouTube and Vimeo URLs are supported.');
         return;
       }
     } catch {
@@ -71,9 +90,9 @@ export const Hero = () => {
   };
 
   return (
-    <section className="relative pt-24 pb-48 overflow-hidden">
+    <section className="relative pt-24 pb-48 overflow-hidden" aria-labelledby="hero-heading">
       {/* Background */}
-      <div className="absolute inset-0 -z-10">
+      <div className="absolute inset-0 -z-10" aria-hidden="true">
         <div className="absolute top-0 left-0 w-full h-[800px] bg-linear-to-b from-primary-fixed/30 to-background organic-wave" />
         <div className="absolute top-40 -left-20 w-96 h-96 bg-secondary-container/40 rounded-full blur-[100px] opacity-60" />
         <div className="absolute top-20 -right-20 w-80 h-80 bg-primary-container/20 rounded-full blur-[100px] opacity-60" />
@@ -82,20 +101,24 @@ export const Hero = () => {
       <div className="max-w-7xl mx-auto px-8 text-center flex flex-col items-center">
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-fixed font-label-md text-label-md mb-8">
-          <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+          <span className="material-symbols-outlined text-[18px]" aria-hidden="true" style={{ fontVariationSettings: "'FILL' 1" }}>
             verified
           </span>
           AI-Powered Video Repurposing
         </div>
 
         {/* Headline */}
-        <h1 ref={headingRef} className="font-display-lg text-display-lg text-on-background mb-8 max-w-4xl tracking-tight">
-          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-100 hero-text">Convert</span>{' '}
-          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-200 hero-text">long</span>{' '}
-          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-300 hero-text">videos</span>{' '}
-          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-400 hero-text">into</span>{' '}
-          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-500 hero-text text-primary italic">short-form</span>{' '}
-          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-600 hero-text">content</span>
+        <h1
+          id="hero-heading"
+          ref={headingRef}
+          className="font-display-lg text-display-lg text-on-background mb-8 max-w-4xl tracking-tight"
+        >
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-100 hero-text motion-reduce:opacity-100 motion-reduce:translate-y-0">Convert</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-200 hero-text motion-reduce:opacity-100 motion-reduce:translate-y-0">long</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-300 hero-text motion-reduce:opacity-100 motion-reduce:translate-y-0">videos</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-400 hero-text motion-reduce:opacity-100 motion-reduce:translate-y-0">into</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-500 hero-text text-primary italic motion-reduce:opacity-100 motion-reduce:translate-y-0">short-form</span>{' '}
+          <span className="inline-block opacity-0 translate-y-4 transition-all duration-700 delay-600 hero-text motion-reduce:opacity-100 motion-reduce:translate-y-0">content</span>
         </h1>
 
         {/* Subheading */}
@@ -105,37 +128,47 @@ export const Hero = () => {
         </p>
 
         {/* CTAs */}
-        <div className="flex gap-4 items-center">
+        <div className="flex flex-wrap gap-4 items-center justify-center">
           <Link
             href={isLoggedIn ? '/upload' : '/auth'}
-            className="bg-primary text-white px-10 py-5 rounded-full font-headline-md text-body-lg hover:scale-[1.05] active:scale-95 transition-all shadow-[0_12px_40px_-8px_rgba(171,53,0,0.4)] cursor-pointer"
+            className="bg-primary text-white px-10 py-5 rounded-full font-headline-md text-body-lg hover:scale-[1.02] active:scale-95 transition-transform shadow-[0_12px_40px_-8px_rgba(171,53,0,0.4)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Repurpose My Content
           </Link>
-          <button className="glass-surface px-10 py-5 rounded-full font-headline-md text-body-lg border border-primary/20 hover:bg-white transition-all cursor-pointer">
+          <Link
+            href="#workflow"
+            className="glass-surface px-10 py-5 rounded-full font-headline-md text-body-lg border border-primary/20 hover:bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
             Watch Demo
-          </button>
+          </Link>
         </div>
       </div>
 
       {/* Interactive Showcase */}
       <div className="max-w-5xl mx-auto mt-24 px-8 relative">
-        <div className="glass-surface deep-boxed rounded-lg p-4 relative z-10">
+        <div className="glass-surface deep-boxed rounded-lg p-4 relative z-10 border border-stone-100 shadow-sm">
 
           {/* Main Video Player */}
           <div className="relative aspect-video rounded-xl overflow-hidden bg-stone-900 shadow-inner group">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              alt="Main Video Player"
+            <Image
+              alt="Creator editing a podcast video in ClipForge"
               className="w-full h-full object-cover opacity-90"
               src="https://lh3.googleusercontent.com/aida/ADBb0uj9SJroHaJQnQMxg_6myDRpmfHFu6u8vH29_ruspJ9rYsLE_CRv51fH6dr3CybvNyC6hcQo0tu_0gjhLH9c_EpcuE-2tfzaczMK8KPF58sBjMiS8jUNr8juwSWh50XbXI5NEwOmIeHsVHeBgehgkfyO_7wHB6X-GxMwF8URPSxP-3wH5Xca7ULiBjsWQKUdf8pQmzOjJdgYJxz68Mfe6fFuzBg0LdGwR3xrlwTxD0ReB7IrgbHINfNAAcAdjtmCIAueEpuXNt0geHI"
+              width={1024}
+              height={576}
+              priority
+              sizes="(max-width: 1024px) 100vw, 1024px"
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-20 h-20 bg-primary text-white rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform shadow-2xl">
-                <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+              <Link
+                href="#workflow"
+                aria-label="Watch demo"
+                className="w-20 h-20 bg-primary text-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <span className="material-symbols-outlined text-4xl" aria-hidden="true" style={{ fontVariationSettings: "'FILL' 1" }}>
                   play_arrow
                 </span>
-              </div>
+              </Link>
             </div>
             <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded text-white text-xs font-medium">
               01:24:15 / 02:30:00
@@ -143,38 +176,59 @@ export const Hero = () => {
           </div>
 
           {/* URL Input */}
-          <div className="mt-8 mb-8">
-            <div className={`flex gap-2 p-2 bg-white rounded-full border shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all ${urlError ? 'border-red-400' : 'border-primary/10'}`}>
+          <form
+            className="mt-8 mb-8"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleGetClips();
+            }}
+            noValidate
+          >
+            <label htmlFor="hero-url" className="sr-only">
+              Video URL
+            </label>
+            <div
+              className={`flex gap-2 p-2 bg-white rounded-full border shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-colors ${urlError ? 'border-red-400' : 'border-primary/10'}`}
+            >
               <input
+                id="hero-url"
                 className="flex-1 bg-transparent border-none focus:ring-0 outline-none px-6 text-on-surface font-medium placeholder:text-stone-400"
-                placeholder="Drop a long video URL (YouTube, Vimeo, Twitch)..."
-                type="text"
+                placeholder="Drop a long video URL (YouTube, Vimeo)..."
+                type="url"
+                autoComplete="url"
                 value={url}
-                onChange={(e) => { setUrl(e.target.value); setUrlError(''); }}
-                onKeyDown={(e) => e.key === 'Enter' && handleGetClips()}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setUrlError('');
+                }}
+                aria-invalid={!!urlError}
+                aria-describedby={urlError ? 'hero-url-error' : undefined}
               />
               <button
-                onClick={handleGetClips}
-                className="bg-primary text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 hover:bg-surface-tint transition-colors"
+                type="submit"
+                className="bg-primary text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 hover:bg-surface-tint transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
-                <span className="material-symbols-outlined">magic_button</span>
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  magic_button
+                </span>
                 Get Clips
               </button>
             </div>
             {urlError && (
-              <p className="text-red-500 text-sm mt-2 px-4 font-medium">{urlError}</p>
+              <p id="hero-url-error" role="alert" className="text-red-600 text-sm mt-2 px-4 font-medium">
+                {urlError}
+              </p>
             )}
-          </div>
+          </form>
 
           {/* Sliding Clip Row */}
-          <div className="overflow-hidden w-full rounded-lg relative">
-            <div className="clip-slider">
+          <div className="overflow-hidden w-full rounded-lg relative" aria-hidden="true">
+            <div className="clip-slider motion-reduce:animate-none">
               {/* First set */}
               <div className="grid grid-cols-4 gap-4 w-1/2 shrink-0 pr-4">
                 {clips.map((clip, i) => (
-                  <div key={i} className="aspect-9/16 bg-stone-200 rounded-lg overflow-hidden relative shadow-lg border border-primary/5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img alt={clip.title} className="w-full h-full object-cover" src={clip.src} />
+                  <div key={i} className="aspect-[9/16] bg-stone-200 rounded-lg overflow-hidden relative shadow-sm border border-stone-100">
+                    <Image alt="" className="w-full h-full object-cover" src={clip.src} width={180} height={320} sizes="180px" />
                     <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3 text-white">
                       <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{clip.label}</p>
@@ -184,11 +238,10 @@ export const Hero = () => {
                 ))}
               </div>
               {/* Duplicate for seamless loop */}
-              <div className="grid grid-cols-4 gap-4 w-1/2 shrink-0 pr-4">
+              <div className="grid grid-cols-4 gap-4 w-1/2 shrink-0 pr-4" aria-hidden="true">
                 {clips.map((clip, i) => (
-                  <div key={i} className="aspect-9/16 bg-stone-200 rounded-lg overflow-hidden relative shadow-lg border border-primary/5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img alt={clip.title} className="w-full h-full object-cover" src={clip.src} />
+                  <div key={`dup-${i}`} className="aspect-[9/16] bg-stone-200 rounded-lg overflow-hidden relative shadow-sm border border-stone-100">
+                    <Image alt="" className="w-full h-full object-cover" src={clip.src} width={180} height={320} sizes="180px" />
                     <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3 text-white">
                       <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">{clip.label}</p>
@@ -201,7 +254,7 @@ export const Hero = () => {
           </div>
 
         </div>
-        <div className="absolute -inset-10 bg-primary/10 blur-[100px] -z-10 rounded-full" />
+        <div className="absolute -inset-10 bg-primary/10 blur-[100px] -z-10 rounded-full motion-reduce:hidden" aria-hidden="true" />
       </div>
     </section>
   );

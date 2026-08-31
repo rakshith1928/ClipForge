@@ -1,5 +1,6 @@
 // Landing page — Server Component (child components handle their own "use client")
 
+import type { Metadata } from 'next';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { SocialProof } from './components/SocialProof';
@@ -9,10 +10,36 @@ import { Testimonials } from './components/Testimonials';
 import { BottomCTA } from './components/BottomCTA';
 import { Footer } from './components/Footer';
 
+export const metadata: Metadata = {
+  title: 'ClipForge — Turn long videos into viral clips',
+  description:
+    'Turn podcasts, webinars and streams into viral clips for TikTok, Reels and Shorts in one click. AI finds the most engaging moments automatically.',
+  openGraph: {
+    title: 'ClipForge — Turn long videos into viral clips',
+    description:
+      'AI-powered video repurposing for creators. Paste a URL, get 15 viral-ready clips in minutes.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ClipForge — Turn long videos into viral clips',
+    description: 'AI finds your best moments and cuts viral clips automatically.',
+  },
+};
+
 export default function Home() {
   return (
     <>
-      <main className="min-h-screen bg-background text-on-background relative overflow-x-hidden w-full">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-stone-900 focus:rounded-full focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary"
+      >
+        Skip to content
+      </a>
+      <main
+        id="main-content"
+        className="min-h-screen bg-background text-on-background relative overflow-x-hidden w-full"
+      >
         <Navbar />
         <Hero />
         <SocialProof />
@@ -22,14 +49,6 @@ export default function Home() {
         <BottomCTA />
         <Footer />
       </main>
-
-      {/* Floating Action Button */}
-      <button
-        className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center shadow-[0_12px_40px_rgba(171,53,0,0.4)] hover:scale-110 active:scale-95 transition-all z-50 cursor-pointer"
-        aria-label="Open chat"
-      >
-        <span className="material-symbols-outlined text-3xl">chat</span>
-      </button>
     </>
   );
 }
